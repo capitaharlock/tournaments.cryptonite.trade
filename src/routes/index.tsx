@@ -120,7 +120,7 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
   const icon = () => t().name.includes("Sprint") ? "⚡" : t().name.includes("Classic") ? "🏆" : "🏔️";
 
   return (
-    <div class="bg-black rounded-xl flex flex-col h-full overflow-hidden shadow-xl shadow-black/50">
+    <div class="bg-black rounded-xl flex flex-col overflow-hidden shadow-xl shadow-black/50">
       {/* ─── Top bar: title left, clock right ─── */}
       <div class="flex items-start justify-between p-4 pb-3">
         <div>
@@ -174,8 +174,8 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
         </Show>
       </div>
 
-      {/* Rankings */}
-      <div class="flex-1 overflow-y-auto">
+      {/* Rankings — fixed to 10, no stretch */}
+      <div>
         <MiniRanking
           rankings={rankings()}
           tournamentSlug={t().slug}
@@ -184,12 +184,22 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
         />
       </div>
 
-      {/* Footer */}
+      {/* Footer — remaining participants + enter button */}
       <A
         href={`/tournaments/${t().slug}`}
-        class="block text-center py-2 text-xs text-gray-600 hover:text-white bg-[#0a0a0a] border-t border-gray-800/30 transition"
+        class="flex items-center justify-between px-4 py-2.5 bg-[#0a0a0a] border-t border-gray-800/30 hover:bg-[#111] transition group"
       >
-        {isLive() ? "Full Rankings →" : "View Details →"}
+        <span class="text-[11px] text-gray-500 group-hover:text-gray-300">
+          <Show when={t().total_spots > props.maxRanks}>
+            +{t().total_spots - props.maxRanks} more participants
+          </Show>
+          <Show when={t().total_spots <= props.maxRanks}>
+            {t().total_spots} total spots
+          </Show>
+        </span>
+        <span class="text-[11px] text-green-500 font-medium group-hover:text-green-400">
+          View Full Tournament →
+        </span>
       </A>
     </div>
   );

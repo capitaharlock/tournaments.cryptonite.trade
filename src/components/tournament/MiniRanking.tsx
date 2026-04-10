@@ -92,7 +92,7 @@ export default function MiniRanking(props: Props) {
     <div>
       {/* Header */}
       <div class="flex items-center gap-2 px-3 py-2 text-[10px] text-gray-500 uppercase tracking-wider border-b border-gray-800/50">
-        <span class="w-10 text-center">Rank</span>
+        <span class="w-9 text-center">Rank</span>
         <span class="w-6" />
         <span class="flex-1">Trader</span>
         <span class="w-16 text-right">Profit</span>
@@ -110,10 +110,10 @@ export default function MiniRanking(props: Props) {
           return (
             <A
               href={`/tournaments/${props.tournamentSlug}`}
-              class="leaderboard-row flex items-center gap-2 px-3 py-2 border-b border-[#1a1a1a] hover:bg-white/[0.03] transition-colors group"
+              class="leaderboard-row flex items-center gap-2 px-3 py-[6px] border-b border-[#1a1a1a] hover:bg-white/[0.03] transition-colors group"
             >
               {/* Rank badge */}
-              <div class={`w-10 h-7 rounded-md flex items-center justify-center text-[11px] font-bold flex-shrink-0 border ${
+              <div class={`w-9 h-6 rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0 border ${
                 entry.rank === 1
                   ? "bg-yellow-400/15 border-yellow-400/40 text-yellow-400 shadow-sm shadow-yellow-400/10"
                   : entry.rank === 2
