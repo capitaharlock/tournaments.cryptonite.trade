@@ -54,7 +54,7 @@ export default function MiniRanking(props: Props) {
     <div>
       {/* Header */}
       <div class="flex items-center gap-2 px-3 py-2 text-[10px] text-gray-500 uppercase tracking-wider border-b border-gray-800/50">
-        <span class="w-6 text-center">#</span>
+        <span class="w-7 text-center">#</span>
         <span class="w-6" />
         <span class="flex-1">Trader</span>
         <span class="w-16 text-right">Profit</span>
@@ -74,15 +74,20 @@ export default function MiniRanking(props: Props) {
               href={`/tournaments/${props.tournamentSlug}`}
               class="leaderboard-row flex items-center gap-2 px-3 py-2 border-b border-gray-800/30 hover:bg-white/[0.03] transition-colors group"
             >
-              {/* Rank */}
-              <span class={`w-6 text-center text-xs font-mono flex-shrink-0 ${
-                entry.rank === 1 ? "text-yellow-400 font-bold" :
-                entry.rank === 2 ? "text-gray-300 font-bold" :
-                entry.rank === 3 ? "text-orange-400 font-bold" :
-                "text-gray-600"
+              {/* Rank badge */}
+              <div class={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold flex-shrink-0 border ${
+                entry.rank === 1
+                  ? "bg-yellow-400/15 border-yellow-400/40 text-yellow-400 shadow-sm shadow-yellow-400/10"
+                  : entry.rank === 2
+                  ? "bg-gray-300/10 border-gray-400/30 text-gray-300 shadow-sm shadow-gray-400/10"
+                  : entry.rank === 3
+                  ? "bg-orange-400/12 border-orange-400/30 text-orange-400 shadow-sm shadow-orange-400/10"
+                  : entry.rank <= 10
+                  ? "bg-[#1a1a1a] border-gray-700/50 text-gray-400"
+                  : "bg-[#151515] border-gray-800/40 text-gray-600"
               }`}>
                 {entry.rank}
-              </span>
+              </div>
 
               {/* Avatar — gray circle, colored letter */}
               <div class={`w-6 h-6 rounded-full bg-[#222] flex items-center justify-center text-[10px] font-bold ${letterColor(name())} flex-shrink-0`}>
