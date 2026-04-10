@@ -72,7 +72,7 @@ export default function MiniRanking(props: Props) {
           return (
             <A
               href={`/tournaments/${props.tournamentSlug}`}
-              class="leaderboard-row flex items-center gap-2 px-3 py-2 border-b border-gray-800/30 hover:bg-white/[0.03] transition-colors group"
+              class="leaderboard-row flex items-center gap-2 px-3 py-2 border-b border-[#1a1a1a] hover:bg-white/[0.03] transition-colors group"
             >
               {/* Rank badge — wide with # prefix */}
               <div class={`w-10 h-7 rounded-md flex items-center justify-center text-[11px] font-bold flex-shrink-0 border ${
