@@ -27,8 +27,50 @@ function getPrize(rank: number, prizes?: PrizeBand[]): PrizeBand | undefined {
   return prizes.find(p => rank >= p.rank_from && rank <= p.rank_to);
 }
 
-// Short label for inline display
-function shortPrize(p: PrizeBand): string {
+// Prize icons (SVG inline) + labels
+function PrizeIcon(props: { type: string }) {
+  switch (props.type) {
+    case "cash":
+      return (
+        <svg class="w-4 h-4 text-yellow-400" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5" />
+          <path d="M12 6v12M9 9.5c0-.83.67-1.5 1.5-1.5h1c1.38 0 2.5 1.12 2.5 2.5S12.88 13 11.5 13h-1c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h1c1.38 0 2.5-1.12 2.5-2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+      );
+    case "challenge":
+      return (
+        <svg class="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+        </svg>
+      );
+    case "qualify":
+      return (
+        <svg class="w-4 h-4 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+        </svg>
+      );
+    case "retry":
+      return (
+        <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+        </svg>
+      );
+    case "funded":
+      return (
+        <svg class="w-4 h-4 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+        </svg>
+      );
+    default:
+      return (
+        <svg class="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10" />
+        </svg>
+      );
+  }
+}
+
+function prizeLabel(p: PrizeBand): string {
   if (p.type === "cash") return `$${p.value}`;
   if (p.type === "challenge") return "Challenge";
   if (p.type === "qualify") return "Qualify";
@@ -38,12 +80,12 @@ function shortPrize(p: PrizeBand): string {
   return p.type;
 }
 
-const PRIZE_COLORS: Record<string, string> = {
-  cash: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
-  challenge: "text-blue-400 bg-blue-400/10 border-blue-400/20",
-  qualify: "text-purple-400 bg-purple-400/10 border-purple-400/20",
-  retry: "text-gray-400 bg-gray-400/10 border-gray-500/20",
-  funded: "text-green-400 bg-green-400/10 border-green-400/20",
+const PRIZE_TEXT_COLORS: Record<string, string> = {
+  cash: "text-yellow-400",
+  challenge: "text-blue-400",
+  qualify: "text-purple-400",
+  retry: "text-gray-400",
+  funded: "text-green-400",
 };
 
 export default function MiniRanking(props: Props) {
@@ -109,14 +151,15 @@ export default function MiniRanking(props: Props) {
                 {isPositive() ? "+" : ""}${Math.abs(profitAmount()).toFixed(0)}
               </span>
 
-              {/* Prize */}
-              <span class="w-16 text-right flex-shrink-0">
+              {/* Prize — icon + label */}
+              <div class="w-20 flex items-center justify-end gap-1 flex-shrink-0">
                 <Show when={prize()} fallback={<span class="text-gray-800 text-[10px]">—</span>}>
-                  <span class={`text-[9px] px-1.5 py-0.5 rounded border inline-block ${PRIZE_COLORS[prize()!.type] || "text-gray-400 bg-gray-800 border-gray-700"}`}>
-                    {shortPrize(prize()!)}
+                  <PrizeIcon type={prize()!.type} />
+                  <span class={`text-[10px] font-medium ${PRIZE_TEXT_COLORS[prize()!.type] || "text-gray-500"}`}>
+                    {prizeLabel(prize()!)}
                   </span>
                 </Show>
-              </span>
+              </div>
             </A>
           );
         }}
