@@ -1,25 +1,50 @@
 import { For, Show } from "solid-js";
 import { A } from "@solidjs/router";
-import type { RankingEntry } from "../../types/tournament";
+import type { RankingEntry, PrizeBand } from "../../types/tournament";
 
 interface Props {
   rankings: RankingEntry[];
   tournamentSlug: string;
   maxRows?: number;
   accountSize?: number;
+  prizes?: PrizeBand[];
 }
 
-const AVATAR_COLORS = [
-  "bg-emerald-600", "bg-blue-600", "bg-purple-600", "bg-pink-600",
-  "bg-orange-600", "bg-teal-600", "bg-cyan-600", "bg-rose-600",
-  "bg-indigo-600", "bg-amber-600",
+const LETTER_COLORS = [
+  "text-emerald-400", "text-blue-400", "text-purple-400", "text-pink-400",
+  "text-orange-400", "text-teal-400", "text-cyan-400", "text-rose-400",
+  "text-indigo-400", "text-amber-400",
 ];
 
-function avatarColor(name: string): string {
+function letterColor(name: string): string {
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+  return LETTER_COLORS[Math.abs(hash) % LETTER_COLORS.length];
 }
+
+function getPrize(rank: number, prizes?: PrizeBand[]): PrizeBand | undefined {
+  if (!prizes) return undefined;
+  return prizes.find(p => rank >= p.rank_from && rank <= p.rank_to);
+}
+
+// Short label for inline display
+function shortPrize(p: PrizeBand): string {
+  if (p.type === "cash") return `$${p.value}`;
+  if (p.type === "challenge") return "Challenge";
+  if (p.type === "qualify") return "Qualify";
+  if (p.type === "retry") return "Retry";
+  if (p.type === "funded") return "Funded";
+  if (p.type === "discount") return `${p.value}% off`;
+  return p.type;
+}
+
+const PRIZE_COLORS: Record<string, string> = {
+  cash: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
+  challenge: "text-blue-400 bg-blue-400/10 border-blue-400/20",
+  qualify: "text-purple-400 bg-purple-400/10 border-purple-400/20",
+  retry: "text-gray-400 bg-gray-400/10 border-gray-500/20",
+  funded: "text-green-400 bg-green-400/10 border-green-400/20",
+};
 
 export default function MiniRanking(props: Props) {
   const rows = () => props.rankings.slice(0, props.maxRows || 10);
@@ -34,8 +59,7 @@ export default function MiniRanking(props: Props) {
         <span class="flex-1">Trader</span>
         <span class="w-16 text-right">Profit</span>
         <span class="w-14 text-right hidden sm:block">Amount</span>
-        <span class="w-10 text-right hidden md:block">Ops</span>
-        <span class="w-10 text-right">Open</span>
+        <span class="w-16 text-right">Prize</span>
       </div>
 
       <For each={rows()}>
@@ -43,6 +67,7 @@ export default function MiniRanking(props: Props) {
           const name = () => entry.nickname || "Anon";
           const isPositive = () => entry.profit_percentage >= 0;
           const profitAmount = () => acctSize() * entry.profit_percentage / 100;
+          const prize = () => getPrize(entry.rank, props.prizes);
 
           return (
             <A
@@ -59,8 +84,8 @@ export default function MiniRanking(props: Props) {
                 {entry.rank}
               </span>
 
-              {/* Avatar */}
-              <div class={`w-6 h-6 rounded-full ${avatarColor(name())} flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0`}>
+              {/* Avatar — gray circle, colored letter */}
+              <div class={`w-6 h-6 rounded-full bg-[#222] flex items-center justify-center text-[10px] font-bold ${letterColor(name())} flex-shrink-0`}>
                 {name()[0].toUpperCase()}
               </div>
 
@@ -75,18 +100,17 @@ export default function MiniRanking(props: Props) {
               </span>
 
               {/* Profit amount */}
-              <span class={`w-14 text-right text-[11px] font-mono tabular-nums hidden sm:block ${isPositive() ? "text-green-400/70" : "text-red-400/70"}`}>
+              <span class={`w-14 text-right text-[11px] font-mono tabular-nums hidden sm:block ${isPositive() ? "text-green-400/60" : "text-red-400/60"}`}>
                 {isPositive() ? "+" : ""}${Math.abs(profitAmount()).toFixed(0)}
               </span>
 
-              {/* Total trades (mock) */}
-              <span class="w-10 text-right text-[11px] text-gray-600 hidden md:block">
-                {Math.floor(Math.random() * 30) + 5}
-              </span>
-
-              {/* Open positions */}
-              <span class={`w-10 text-right text-[11px] ${entry.open_positions_count > 0 ? "text-blue-400" : "text-gray-700"}`}>
-                {entry.open_positions_count}
+              {/* Prize */}
+              <span class="w-16 text-right flex-shrink-0">
+                <Show when={prize()} fallback={<span class="text-gray-800 text-[10px]">—</span>}>
+                  <span class={`text-[9px] px-1.5 py-0.5 rounded border inline-block ${PRIZE_COLORS[prize()!.type] || "text-gray-400 bg-gray-800 border-gray-700"}`}>
+                    {shortPrize(prize()!)}
+                  </span>
+                </Show>
               </span>
             </A>
           );

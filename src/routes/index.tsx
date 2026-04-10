@@ -156,7 +156,7 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
           rankings={rankings()}
           tournamentSlug={t().slug}
           maxRows={props.maxRanks}
-          accountSize={Number(t().account_size)}
+          accountSize={Number(t().account_size)} prizes={t().prizes as any}
         />
       </div>
 
@@ -203,7 +203,7 @@ function CompactPanel(props: { tournament: Tournament }) {
           <Show when={isReg()}><FlipClock targetDate={t().starts_at} size="sm" /></Show>
         </div>
       </div>
-      <MiniRanking rankings={rankings()} tournamentSlug={t().slug} maxRows={5} accountSize={Number(t().account_size)} />
+      <MiniRanking rankings={rankings()} tournamentSlug={t().slug} maxRows={5} accountSize={Number(t().account_size)} prizes={t().prizes as any[]} />
       <div class="flex items-center justify-between px-3 py-2 border-t border-gray-800/30 bg-[#0a0a0a]">
         <div class="flex gap-1">
           {(t().prizes as any[]).slice(0, 2).map((p) => (
