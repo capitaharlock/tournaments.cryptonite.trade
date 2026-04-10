@@ -8,6 +8,7 @@ import Header from "../components/layout/Header";
 import FlipClock from "../components/tournament/FlipClock";
 import MiniRanking from "../components/tournament/MiniRanking";
 import TournamentProgress from "../components/tournament/TournamentProgress";
+import TournamentHero from "../components/tournament/TournamentHero";
 
 export default function Home() {
   const [active] = createResource(() => fetchTournaments("active"));
@@ -106,7 +107,6 @@ export default function Home() {
 
 function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
   const t = () => props.tournament;
-  const isLive = () => t().status === "active";
   const isReg = () => t().status === "registration";
 
   const [apiRankings] = createResource(() => t().id, (id) => fetchRankings(id, props.maxRanks));
@@ -116,65 +116,12 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
     return generateMockRankings(props.maxRanks, t().name.includes("Sprint") ? 6 : 8);
   });
 
-  const totalDays = () => Math.round((new Date(t().ends_at).getTime() - new Date(t().starts_at).getTime()) / 86400000);
-  const icon = () => t().name.includes("Sprint") ? "⚡" : t().name.includes("Classic") ? "🏆" : "🏔️";
-
   return (
     <div class="bg-black rounded-xl flex flex-col overflow-hidden shadow-xl shadow-black/50">
-      {/* ─── Top bar: title left, clock right ─── */}
-      <div class="flex items-start justify-between p-4 pb-3">
-        <div>
-          <div class="flex items-center gap-2 mb-1">
-            <span class="text-lg">{icon()}</span>
-            <h2 class="text-base font-bold text-white">{t().name}</h2>
-          </div>
-          <div class="flex items-center gap-3 text-[11px] text-gray-500">
-            <span>${Number(t().account_size).toLocaleString()}</span>
-            <span class="text-gray-700">•</span>
-            <span class="text-green-400 font-medium">${t().entry_fee}</span>
-            <span class="text-gray-700">•</span>
-            <span>{t().reserved_spots}/{t().total_spots} players</span>
-          </div>
-        </div>
-        {/* Clock + status at top right */}
-        <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
-          <Show when={isLive()}>
-            <FlipClock targetDate={t().ends_at} size="sm" />
-          </Show>
-          <Show when={isReg()}>
-            <FlipClock targetDate={t().starts_at} size="sm" />
-          </Show>
-        </div>
-      </div>
+      {/* Hero — visual tournament identity */}
+      <TournamentHero tournament={t()} />
 
-      {/* Progress bar (live only) */}
-      <Show when={isLive()}>
-        <div class="px-4 pb-2">
-          <TournamentProgress startsAt={t().starts_at} endsAt={t().ends_at} totalDays={totalDays()} />
-        </div>
-      </Show>
-
-      {/* Prizes strip */}
-      <div class="px-4 py-2 bg-[#0a0a0a] border-y border-gray-800/30 flex items-center justify-between">
-        <div class="flex flex-wrap gap-1.5 flex-1">
-          {(t().prizes as any[]).map((p) => (
-            <span class="text-[10px] bg-[#111] border border-gray-800/50 px-2 py-0.5 rounded-full text-gray-400">
-              <span class="text-yellow-400 font-mono">#{p.rank_from}{p.rank_to > p.rank_from ? `–${p.rank_to}` : ""}</span>{" "}{p.label || p.type}
-            </span>
-          ))}
-        </div>
-        {/* Join button — compact, right-aligned */}
-        <Show when={isReg() && t().spots_available > 0}>
-          <A
-            href={`/checkout/${t().slug}`}
-            class="ml-3 px-4 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg transition flex-shrink-0"
-          >
-            Join ${t().entry_fee}
-          </A>
-        </Show>
-      </div>
-
-      {/* Rankings — fixed to 10, no stretch */}
+      {/* Rankings */}
       <div>
         <MiniRanking
           rankings={rankings()}
@@ -184,23 +131,26 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
         />
       </div>
 
-      {/* Footer — remaining participants + enter button */}
-      <A
-        href={`/tournaments/${t().slug}`}
-        class="flex items-center justify-between px-4 py-2.5 bg-[#0a0a0a] border-t border-gray-800/30 hover:bg-[#111] transition group"
-      >
-        <span class="text-[11px] text-gray-500 group-hover:text-gray-300">
-          <Show when={t().total_spots > props.maxRanks}>
-            +{t().total_spots - props.maxRanks} more participants
+      {/* Footer */}
+      <div class="flex items-center justify-between px-4 py-2.5 bg-[#0a0a0a] border-t border-white/[0.03]">
+        <A
+          href={`/tournaments/${t().slug}`}
+          class="text-[11px] text-gray-500 hover:text-gray-300 transition"
+        >
+          +{t().total_spots - props.maxRanks} more participants
+        </A>
+
+        <div class="flex items-center gap-2">
+          <Show when={isReg() && t().spots_available > 0}>
+            <A href={`/checkout/${t().slug}`} class="px-3 py-1 bg-green-600 hover:bg-green-500 text-white text-[10px] font-bold rounded transition">
+              Join ${t().entry_fee}
+            </A>
           </Show>
-          <Show when={t().total_spots <= props.maxRanks}>
-            {t().total_spots} total spots
-          </Show>
-        </span>
-        <span class="text-[11px] text-green-500 font-medium group-hover:text-green-400">
-          View Full Tournament →
-        </span>
-      </A>
+          <A href={`/tournaments/${t().slug}`} class="text-[11px] text-green-500 hover:text-green-400 font-medium transition">
+            View Full Tournament →
+          </A>
+        </div>
+      </div>
     </div>
   );
 }
