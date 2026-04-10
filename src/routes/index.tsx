@@ -15,96 +15,65 @@ export default function Home() {
   const [scheduled] = createResource(() => fetchTournaments("scheduled"));
   const [finished] = createResource(() => fetchTournaments("finished"));
 
-  // Sort: ending soonest first
   const allLive = createMemo(() => {
     const all = [...(active() || []), ...(registering() || [])];
     return all.sort((a, b) => new Date(a.ends_at).getTime() - new Date(b.ends_at).getTime());
   });
 
-  const primary = () => allLive()[0] || null;    // Ends soonest — 40% left
-  const secondary = () => allLive()[1] || null;   // Ends second — middle
-  const rest = () => allLive().slice(2);          // Others
+  const primary = () => allLive()[0] || null;
+  const secondary = () => allLive()[1] || null;
+  const rest = () => allLive().slice(2);
 
   return (
     <>
       <Title>Cryptonite Tournaments — Compete, Trade, Win</Title>
       <Header />
 
-      <div class="min-h-screen flex flex-col">
-        {/* ═══════════════════════════════════════════════════════════
-            MAIN 3-COLUMN LAYOUT (fills viewport)
-        ═══════════════════════════════════════════════════════════ */}
-        <div class="flex-1 flex flex-col lg:flex-row">
+      <div class="min-h-screen bg-black">
+        <div class="flex flex-col lg:flex-row min-h-[calc(100vh-48px)] gap-3 p-3">
 
-          {/* ─── LEFT: Primary tournament (40%) ─── */}
-          <div class="lg:w-[40%] border-r border-gray-800/50 flex flex-col">
-            <Show when={primary()} fallback={<EmptySlot label="No active tournaments" />}>
-              {(t) => <TournamentPanel tournament={t()} size="large" />}
+          {/* LEFT (42%) */}
+          <div class="lg:w-[42%] flex-shrink-0">
+            <Show when={primary()} fallback={<EmptyPanel />}>
+              {(t) => <TournamentPanel tournament={t()} maxRanks={10} clockSize="lg" />}
             </Show>
           </div>
 
-          {/* ─── MIDDLE: Secondary tournament (30%) ─── */}
-          <div class="lg:w-[30%] border-r border-gray-800/50 flex flex-col">
-            <Show when={secondary()} fallback={
-              <Show when={scheduled() && scheduled()!.length > 0} fallback={<EmptySlot label="More tournaments coming soon" />}>
-                <SchedulePanel tournaments={scheduled()!} />
-              </Show>
-            }>
-              {(t) => <TournamentPanel tournament={t()} size="medium" />}
+          {/* MIDDLE (30%) */}
+          <div class="lg:w-[30%] flex-shrink-0">
+            <Show when={secondary()} fallback={<EmptyPanel />}>
+              {(t) => <TournamentPanel tournament={t()} maxRanks={10} clockSize="md" />}
             </Show>
           </div>
 
-          {/* ─── RIGHT: Schedule + additional tournaments (30%) ─── */}
-          <div class="lg:w-[30%] flex flex-col overflow-y-auto">
-            {/* Additional live tournaments */}
-            <Show when={rest().length > 0}>
-              <For each={rest()}>
-                {(t) => <CompactTournament tournament={t} />}
+          {/* RIGHT (28%) */}
+          <div class="lg:flex-1 flex flex-col gap-3 overflow-y-auto">
+            <For each={rest()}>
+              {(t) => <CompactPanel tournament={t} />}
+            </For>
+            <Show when={scheduled() && scheduled()!.length > 0}>
+              <For each={scheduled()}>
+                {(t) => <ScheduleCard tournament={t} />}
               </For>
             </Show>
-
-            {/* Schedule */}
-            <Show when={scheduled() && scheduled()!.length > 0}>
-              <SchedulePanel tournaments={scheduled()!} />
-            </Show>
-
-            {/* Registration open (< 24h) */}
-            <Show when={registering() && registering()!.some(t => {
-              const hoursToStart = (new Date(t.starts_at).getTime() - Date.now()) / 3600000;
-              return hoursToStart < 24 && hoursToStart > 0;
-            })}>
-              <div class="p-4 border-t border-gray-800/50">
-                <div class="bg-green-500/5 border border-green-500/20 rounded-lg p-4 text-center">
-                  <p class="text-green-400 text-xs font-semibold mb-1">REGISTRATION CLOSING SOON</p>
-                  <p class="text-gray-400 text-xs">Less than 24 hours to join</p>
-                </div>
-              </div>
-            </Show>
-
-            {/* Recent results */}
             <Show when={finished() && finished()!.length > 0}>
-              <div class="p-4 border-t border-gray-800/50">
-                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Recent Results</h3>
+              <div class="bg-gray-900 border border-gray-800 rounded-xl p-4">
+                <h3 class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-3">Recent Results</h3>
                 <For each={finished()!.slice(0, 3)}>
                   {(t) => (
-                    <A
-                      href={`/tournaments/${t.slug}`}
-                      class="flex items-center justify-between py-2 text-sm hover:text-white transition text-gray-400"
-                    >
+                    <A href={`/tournaments/${t.slug}`} class="flex items-center justify-between py-2 border-b border-gray-800/50 last:border-0 hover:text-white transition text-gray-500 text-sm">
                       <span>{t.name}</span>
-                      <span class="text-xs text-gray-600">{t.reserved_spots}p →</span>
+                      <span class="text-xs text-gray-700">{t.reserved_spots}p →</span>
                     </A>
                   )}
                 </For>
               </div>
             </Show>
-
-            {/* How it works mini */}
-            <div class="mt-auto p-4 border-t border-gray-800/50">
-              <div class="grid grid-cols-3 gap-2 text-center text-[10px] text-gray-500">
-                <div><span class="text-green-500 font-bold">1.</span> Pick & Pay</div>
-                <div><span class="text-green-500 font-bold">2.</span> Trade</div>
-                <div><span class="text-green-500 font-bold">3.</span> Win Prizes</div>
+            <div class="bg-gray-900/50 border border-gray-800/50 rounded-xl p-4 mt-auto">
+              <div class="grid grid-cols-3 gap-3 text-center text-[10px]">
+                <div><div class="w-6 h-6 rounded-full bg-green-600/20 text-green-400 text-[10px] font-bold flex items-center justify-center mx-auto mb-1">1</div><p class="text-gray-500"><span class="text-gray-300">Pick</span> & Pay</p></div>
+                <div><div class="w-6 h-6 rounded-full bg-green-600/20 text-green-400 text-[10px] font-bold flex items-center justify-center mx-auto mb-1">2</div><p class="text-gray-500"><span class="text-gray-300">Trade</span> Crypto</p></div>
+                <div><div class="w-6 h-6 rounded-full bg-green-600/20 text-green-400 text-[10px] font-bold flex items-center justify-center mx-auto mb-1">3</div><p class="text-gray-500"><span class="text-gray-300">Win</span> Prizes</p></div>
               </div>
             </div>
           </div>
@@ -114,109 +83,75 @@ export default function Home() {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// TOURNAMENT PANEL — Main column display (large or medium)
-// ═══════════════════════════════════════════════════════════════════════════
-
-function TournamentPanel(props: { tournament: Tournament; size: "large" | "medium" }) {
+function TournamentPanel(props: { tournament: Tournament; maxRanks: number; clockSize: "sm" | "md" | "lg" }) {
   const t = () => props.tournament;
   const isLive = () => t().status === "active";
   const isReg = () => t().status === "registration";
-  const isLarge = () => props.size === "large";
 
-  const [apiRankings] = createResource(() => t().id, (id) => fetchRankings(id, isLarge() ? 15 : 10));
+  const [apiRankings] = createResource(() => t().id, (id) => fetchRankings(id, props.maxRanks));
   const rankings = createMemo(() => {
     const real = apiRankings();
     if (real && real.length > 0) return real;
-    return generateMockRankings(isLarge() ? 15 : 10, t().name.includes("Sprint") ? 6 : 8);
+    return generateMockRankings(props.maxRanks, t().name.includes("Sprint") ? 6 : 8);
   });
 
-  const totalDays = () => {
-    const diff = new Date(t().ends_at).getTime() - new Date(t().starts_at).getTime();
-    return Math.round(diff / 86400000);
-  };
+  const totalDays = () => Math.round((new Date(t().ends_at).getTime() - new Date(t().starts_at).getTime()) / 86400000);
+  const icon = () => t().name.includes("Sprint") ? "⚡" : t().name.includes("Classic") ? "🏆" : "🏔️";
 
   return (
-    <div class={`flex flex-col h-full ${isLive() ? "" : ""}`}>
-      {/* Header */}
-      <div class="p-4 border-b border-gray-800/50">
-        <div class="flex items-center justify-between mb-2">
+    <div class="bg-gray-900 border border-gray-800 rounded-xl flex flex-col h-full overflow-hidden">
+      <div class="p-5 pb-4">
+        <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
-            <span class="text-lg">{t().name.includes("Sprint") ? "⚡" : t().name.includes("Classic") ? "🏆" : "🏔️"}</span>
-            <h2 class={`font-bold text-white ${isLarge() ? "text-xl" : "text-lg"}`}>{t().name}</h2>
+            <span class="text-xl">{icon()}</span>
+            <h2 class="text-lg font-bold text-white">{t().name}</h2>
           </div>
           <Show when={isLive()}>
-            <span class="flex items-center gap-1.5 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
-              <span class="relative flex h-2 w-2">
-                <span class="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75" />
-                <span class="relative rounded-full h-2 w-2 bg-green-500" />
-              </span>
+            <span class="flex items-center gap-1.5 text-xs text-green-400 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full">
+              <span class="relative flex h-2 w-2"><span class="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75" /><span class="relative rounded-full h-2 w-2 bg-green-500" /></span>
               LIVE
             </span>
           </Show>
           <Show when={isReg()}>
-            <span class="text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">OPEN</span>
+            <span class="text-xs text-green-400 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full">OPEN</span>
           </Show>
         </div>
 
-        {/* Stats row */}
-        <div class="flex items-center gap-4 text-xs text-gray-400 mb-3">
-          <span>${Number(t().account_size).toLocaleString()} account</span>
-          <span>{t().reserved_spots}/{t().total_spots} joined</span>
-          <span>${t().entry_fee} entry</span>
+        <div class="grid grid-cols-3 gap-2 mb-4">
+          <div class="bg-black/40 rounded-lg px-3 py-2"><p class="text-[10px] text-gray-600 uppercase">Account</p><p class="text-sm font-semibold text-white">${Number(t().account_size).toLocaleString()}</p></div>
+          <div class="bg-black/40 rounded-lg px-3 py-2"><p class="text-[10px] text-gray-600 uppercase">Entry</p><p class="text-sm font-semibold text-green-400">${t().entry_fee}</p></div>
+          <div class="bg-black/40 rounded-lg px-3 py-2"><p class="text-[10px] text-gray-600 uppercase">Players</p><p class="text-sm font-semibold text-white">{t().reserved_spots}<span class="text-gray-600">/{t().total_spots}</span></p></div>
         </div>
 
-        {/* Progress bar */}
         <Show when={isLive()}>
-          <TournamentProgress startsAt={t().starts_at} endsAt={t().ends_at} totalDays={totalDays()} />
+          <div class="mb-4"><TournamentProgress startsAt={t().starts_at} endsAt={t().ends_at} totalDays={totalDays()} /></div>
         </Show>
 
-        {/* Countdown */}
-        <div class="mt-3">
-          <Show when={isLive()}>
-            <FlipClock targetDate={t().ends_at} label="ENDS IN" size={isLarge() ? "lg" : "md"} />
-          </Show>
-          <Show when={isReg()}>
-            <FlipClock targetDate={t().starts_at} label="STARTS IN" size={isLarge() ? "lg" : "md"} />
-          </Show>
-        </div>
+        <Show when={isLive()}><FlipClock targetDate={t().ends_at} label="ENDS IN" size={props.clockSize} /></Show>
+        <Show when={isReg()}><FlipClock targetDate={t().starts_at} label="STARTS IN" size={props.clockSize} /></Show>
       </div>
 
-      {/* Prizes */}
-      <div class="px-4 py-2 border-b border-gray-800/50">
+      <div class="px-5 py-2.5 bg-black/30 border-y border-gray-800/50">
         <div class="flex flex-wrap gap-1.5">
           {(t().prizes as any[]).map((p) => (
-            <span class="text-[10px] bg-gray-800/60 border border-gray-700/30 px-2 py-0.5 rounded text-gray-400">
-              <span class="text-green-400 font-mono">#{p.rank_from}{p.rank_to > p.rank_from ? `–${p.rank_to}` : ""}</span>
-              {" "}{p.label || p.type}
+            <span class="text-[10px] bg-gray-800 border border-gray-700/50 px-2 py-0.5 rounded-full text-gray-400">
+              <span class="text-green-400 font-mono">#{p.rank_from}{p.rank_to > p.rank_from ? `–${p.rank_to}` : ""}</span>{" "}{p.label || p.type}
             </span>
           ))}
         </div>
       </div>
 
-      {/* Rankings — fills remaining space */}
-      <div class="flex-1 overflow-y-auto p-2">
-        <div class="flex items-center justify-between px-2 py-1 mb-1">
-          <span class="text-[10px] text-gray-600 uppercase tracking-wider">Rank</span>
-          <span class="text-[10px] text-gray-600 uppercase tracking-wider">Profit %</span>
-        </div>
-        <MiniRanking rankings={rankings()} tournamentSlug={t().slug} maxRows={isLarge() ? 15 : 10} />
+      <div class="flex-1 overflow-y-auto px-3 py-2">
+        <MiniRanking rankings={rankings()} tournamentSlug={t().slug} maxRows={props.maxRanks} />
       </div>
 
-      {/* CTA */}
       <Show when={isReg() && t().spots_available > 0}>
-        <A
-          href={`/checkout/${t().slug}`}
-          class="block text-center py-3 bg-green-600 hover:bg-green-500 text-white font-bold transition"
-        >
+        <A href={`/checkout/${t().slug}`} class="block text-center py-3 bg-green-600 hover:bg-green-500 text-white font-bold text-sm transition-colors">
           Join Now — ${t().entry_fee}
         </A>
       </Show>
       <Show when={isLive()}>
-        <A
-          href={`/tournaments/${t().slug}`}
-          class="block text-center py-2.5 bg-gray-800/50 hover:bg-gray-700 text-gray-400 text-sm transition"
-        >
+        <A href={`/tournaments/${t().slug}`} class="block text-center py-2.5 bg-black/30 hover:bg-gray-800 text-gray-400 text-sm transition border-t border-gray-800/50">
           Full Rankings →
         </A>
       </Show>
@@ -224,13 +159,10 @@ function TournamentPanel(props: { tournament: Tournament; size: "large" | "mediu
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// COMPACT TOURNAMENT — For right column additional tournaments
-// ═══════════════════════════════════════════════════════════════════════════
-
-function CompactTournament(props: { tournament: Tournament }) {
+function CompactPanel(props: { tournament: Tournament }) {
   const t = () => props.tournament;
   const isLive = () => t().status === "active";
+  const isReg = () => t().status === "registration";
 
   const [apiRankings] = createResource(() => t().id, (id) => fetchRankings(id, 5));
   const rankings = createMemo(() => {
@@ -239,77 +171,66 @@ function CompactTournament(props: { tournament: Tournament }) {
     return generateMockRankings(5);
   });
 
+  const icon = () => t().name.includes("Sprint") ? "⚡" : t().name.includes("Classic") ? "🏆" : "🏔️";
+
   return (
-    <div class="border-b border-gray-800/50 p-3">
-      <div class="flex items-center justify-between mb-2">
-        <div class="flex items-center gap-1.5">
-          <span>{t().name.includes("Sprint") ? "⚡" : "🏆"}</span>
-          <span class="text-sm font-medium text-white">{t().name}</span>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div class="px-4 py-3 flex items-center justify-between border-b border-gray-800/50">
+        <div class="flex items-center gap-2"><span>{icon()}</span><span class="text-sm font-semibold text-white">{t().name}</span></div>
+        <Show when={isLive()}><FlipClock targetDate={t().ends_at} size="sm" /></Show>
+        <Show when={isReg()}><FlipClock targetDate={t().starts_at} size="sm" /></Show>
+      </div>
+      <div class="px-2 py-1"><MiniRanking rankings={rankings()} tournamentSlug={t().slug} maxRows={5} /></div>
+      <Show when={isReg() && t().spots_available > 0}>
+        <A href={`/checkout/${t().slug}`} class="block text-center py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold transition">Join — ${t().entry_fee}</A>
+      </Show>
+      <Show when={isLive() || !isReg()}>
+        <A href={`/tournaments/${t().slug}`} class="block text-center py-2 text-xs text-gray-600 hover:text-white bg-black/20 border-t border-gray-800/50 transition">View →</A>
+      </Show>
+    </div>
+  );
+}
+
+function ScheduleCard(props: { tournament: Tournament }) {
+  const t = () => props.tournament;
+  const icon = () => t().name.includes("Sprint") ? "⚡" : t().name.includes("Classic") ? "🏆" : "🏔️";
+  const startDate = () => new Date(t().starts_at);
+
+  return (
+    <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div class="p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2"><span class="text-lg">{icon()}</span><h3 class="text-sm font-semibold text-white">{t().name}</h3></div>
+          <span class="text-[10px] text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full uppercase">Scheduled</span>
         </div>
-        <Show when={isLive()}>
-          <FlipClock targetDate={t().ends_at} size="sm" />
-        </Show>
+        <div class="grid grid-cols-2 gap-2 mb-3">
+          <div class="bg-black/30 rounded-lg px-3 py-2">
+            <p class="text-[9px] text-gray-600 uppercase">Starts</p>
+            <p class="text-xs font-medium text-white">{startDate().toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+            <p class="text-[10px] text-gray-500">{startDate().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</p>
+          </div>
+          <div class="bg-black/30 rounded-lg px-3 py-2">
+            <p class="text-[9px] text-gray-600 uppercase">Entry Fee</p>
+            <p class="text-xs font-medium text-green-400">${t().entry_fee}</p>
+            <p class="text-[10px] text-gray-500">${Number(t().account_size).toLocaleString()} account</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-1 mb-3">
+          {(t().prizes as any[]).slice(0, 3).map((p) => (
+            <span class="text-[9px] bg-gray-800/60 px-1.5 py-0.5 rounded text-gray-500"><span class="text-green-500">#{p.rank_from}</span> {p.label || p.type}</span>
+          ))}
+        </div>
+        <FlipClock targetDate={t().registration_opens_at} label="REGISTRATION IN" size="sm" />
       </div>
-      <MiniRanking rankings={rankings()} tournamentSlug={t().slug} maxRows={5} />
-      <A
-        href={`/tournaments/${t().slug}`}
-        class="block text-center mt-2 py-1.5 text-xs text-gray-500 hover:text-white bg-gray-800/30 rounded transition"
-      >
-        View →
-      </A>
+      <A href={`/tournaments/${t().slug}`} class="block text-center py-2.5 bg-black/20 border-t border-gray-800/50 text-xs text-gray-500 hover:text-white transition">View Details →</A>
     </div>
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// SCHEDULE PANEL — Upcoming tournaments list
-// ═══════════════════════════════════════════════════════════════════════════
-
-function SchedulePanel(props: { tournaments: Tournament[] }) {
+function EmptyPanel() {
   return (
-    <div class="p-4 border-t border-gray-800/50">
-      <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Upcoming</h3>
-      <div class="space-y-3">
-        <For each={props.tournaments}>
-          {(t) => (
-            <A
-              href={`/tournaments/${t.slug}`}
-              class="block bg-gray-900/30 border border-gray-800/30 rounded-lg p-3 hover:border-gray-700/50 transition"
-            >
-              <div class="flex items-center justify-between mb-1.5">
-                <div class="flex items-center gap-1.5">
-                  <span>{t.name.includes("Sprint") ? "⚡" : t.name.includes("Classic") ? "🏆" : "🏔️"}</span>
-                  <span class="text-sm font-medium text-white">{t.name}</span>
-                </div>
-                <span class="text-xs text-gray-600">${t.entry_fee}</span>
-              </div>
-              <div class="flex items-center justify-between text-xs text-gray-500">
-                <span>{t.total_spots} spots • ${Number(t.account_size).toLocaleString()}</span>
-              </div>
-              <div class="mt-2">
-                <FlipClock targetDate={t.registration_opens_at} label="Registration in" size="sm" />
-              </div>
-            </A>
-          )}
-        </For>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// EMPTY SLOT
-// ═══════════════════════════════════════════════════════════════════════════
-
-function EmptySlot(props: { label: string }) {
-  return (
-    <div class="flex-1 flex items-center justify-center p-8">
-      <div class="text-center">
-        <p class="text-gray-600 text-sm">{props.label}</p>
-        <A href="/schedule" class="text-xs text-green-500 hover:text-green-400 mt-2 inline-block">
-          View schedule →
-        </A>
-      </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl flex items-center justify-center h-full min-h-[300px]">
+      <div class="text-center"><p class="text-gray-600 text-sm mb-2">No active tournaments</p><A href="/schedule" class="text-xs text-green-500 hover:text-green-400">View schedule →</A></div>
     </div>
   );
 }
