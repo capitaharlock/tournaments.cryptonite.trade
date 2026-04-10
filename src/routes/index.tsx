@@ -29,21 +29,20 @@ export default function Home() {
       <Title>Cryptonite Tournaments — Compete, Trade, Win</Title>
       <Header />
 
-      {/* bg-[#1a1a1a] = lighter background, panels are black */}
       <div class="min-h-screen bg-[#1a1a1a]">
         <div class="flex flex-col lg:flex-row min-h-[calc(100vh-48px)] gap-4 p-4">
 
           {/* LEFT (42%) */}
           <div class="lg:w-[42%] flex-shrink-0">
             <Show when={primary()} fallback={<EmptyPanel />}>
-              {(t) => <TournamentPanel tournament={t()} maxRanks={10} clockSize="lg" />}
+              {(t) => <TournamentPanel tournament={t()} maxRanks={10} />}
             </Show>
           </div>
 
           {/* MIDDLE (30%) */}
           <div class="lg:w-[30%] flex-shrink-0">
             <Show when={secondary()} fallback={<EmptyPanel />}>
-              {(t) => <TournamentPanel tournament={t()} maxRanks={10} clockSize="md" />}
+              {(t) => <TournamentPanel tournament={t()} maxRanks={10} />}
             </Show>
           </div>
 
@@ -70,13 +69,6 @@ export default function Home() {
                 </For>
               </div>
             </Show>
-            <div class="bg-black/60 rounded-xl p-4 mt-auto">
-              <div class="grid grid-cols-3 gap-3 text-center text-[10px]">
-                <div><div class="w-6 h-6 rounded-full bg-green-600/20 text-green-400 text-[10px] font-bold flex items-center justify-center mx-auto mb-1">1</div><p class="text-gray-500"><span class="text-gray-300">Pick</span> & Pay</p></div>
-                <div><div class="w-6 h-6 rounded-full bg-green-600/20 text-green-400 text-[10px] font-bold flex items-center justify-center mx-auto mb-1">2</div><p class="text-gray-500"><span class="text-gray-300">Trade</span> Crypto</p></div>
-                <div><div class="w-6 h-6 rounded-full bg-green-600/20 text-green-400 text-[10px] font-bold flex items-center justify-center mx-auto mb-1">3</div><p class="text-gray-500"><span class="text-gray-300">Win</span> Prizes</p></div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -85,10 +77,10 @@ export default function Home() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TOURNAMENT PANEL — Black card on lighter background
+// TOURNAMENT PANEL
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TournamentPanel(props: { tournament: Tournament; maxRanks: number; clockSize: "sm" | "md" | "lg" }) {
+function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
   const t = () => props.tournament;
   const isLive = () => t().status === "active";
   const isReg = () => t().status === "registration";
@@ -105,59 +97,57 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number; cloc
 
   return (
     <div class="bg-black rounded-xl flex flex-col h-full overflow-hidden shadow-xl shadow-black/50">
-      {/* Header */}
-      <div class="p-4 pb-3">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2">
-            <span class="text-xl">{icon()}</span>
-            <h2 class="text-lg font-bold text-white">{t().name}</h2>
+      {/* ─── Top bar: title left, clock right ─── */}
+      <div class="flex items-start justify-between p-4 pb-3">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-lg">{icon()}</span>
+            <h2 class="text-base font-bold text-white">{t().name}</h2>
           </div>
+          <div class="flex items-center gap-3 text-[11px] text-gray-500">
+            <span>${Number(t().account_size).toLocaleString()}</span>
+            <span class="text-gray-700">•</span>
+            <span class="text-green-400 font-medium">${t().entry_fee}</span>
+            <span class="text-gray-700">•</span>
+            <span>{t().reserved_spots}/{t().total_spots} players</span>
+          </div>
+        </div>
+        {/* Clock + status at top right */}
+        <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
           <Show when={isLive()}>
-            <span class="flex items-center gap-1.5 text-xs text-green-400 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full">
-              <span class="relative flex h-2 w-2"><span class="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75" /><span class="relative rounded-full h-2 w-2 bg-green-500" /></span>
-              LIVE
-            </span>
+            <FlipClock targetDate={t().ends_at} size="sm" />
           </Show>
           <Show when={isReg()}>
-            <span class="text-xs text-green-400 bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full">OPEN</span>
+            <FlipClock targetDate={t().starts_at} size="sm" />
           </Show>
         </div>
-
-        {/* Stats */}
-        <div class="grid grid-cols-3 gap-1.5 mb-3">
-          <div class="bg-[#111] rounded-lg px-3 py-2">
-            <p class="text-[9px] text-gray-600 uppercase">Account</p>
-            <p class="text-sm font-bold text-white">${Number(t().account_size).toLocaleString()}</p>
-          </div>
-          <div class="bg-[#111] rounded-lg px-3 py-2">
-            <p class="text-[9px] text-gray-600 uppercase">Entry</p>
-            <p class="text-sm font-bold text-green-400">${t().entry_fee}</p>
-          </div>
-          <div class="bg-[#111] rounded-lg px-3 py-2">
-            <p class="text-[9px] text-gray-600 uppercase">Players</p>
-            <p class="text-sm font-bold text-white">{t().reserved_spots}<span class="text-gray-600 font-normal">/{t().total_spots}</span></p>
-          </div>
-        </div>
-
-        {/* Progress */}
-        <Show when={isLive()}>
-          <div class="mb-3"><TournamentProgress startsAt={t().starts_at} endsAt={t().ends_at} totalDays={totalDays()} /></div>
-        </Show>
-
-        {/* Countdown */}
-        <Show when={isLive()}><FlipClock targetDate={t().ends_at} label="ENDS IN" size={props.clockSize} /></Show>
-        <Show when={isReg()}><FlipClock targetDate={t().starts_at} label="STARTS IN" size={props.clockSize} /></Show>
       </div>
 
-      {/* Prizes */}
-      <div class="px-4 py-2 bg-[#0a0a0a] border-y border-gray-800/40">
-        <div class="flex flex-wrap gap-1.5">
+      {/* Progress bar (live only) */}
+      <Show when={isLive()}>
+        <div class="px-4 pb-2">
+          <TournamentProgress startsAt={t().starts_at} endsAt={t().ends_at} totalDays={totalDays()} />
+        </div>
+      </Show>
+
+      {/* Prizes strip */}
+      <div class="px-4 py-2 bg-[#0a0a0a] border-y border-gray-800/30 flex items-center justify-between">
+        <div class="flex flex-wrap gap-1.5 flex-1">
           {(t().prizes as any[]).map((p) => (
             <span class="text-[10px] bg-[#111] border border-gray-800/50 px-2 py-0.5 rounded-full text-gray-400">
-              <span class="text-green-400 font-mono">#{p.rank_from}{p.rank_to > p.rank_from ? `–${p.rank_to}` : ""}</span>{" "}{p.label || p.type}
+              <span class="text-yellow-400 font-mono">#{p.rank_from}{p.rank_to > p.rank_from ? `–${p.rank_to}` : ""}</span>{" "}{p.label || p.type}
             </span>
           ))}
         </div>
+        {/* Join button — compact, right-aligned */}
+        <Show when={isReg() && t().spots_available > 0}>
+          <A
+            href={`/checkout/${t().slug}`}
+            class="ml-3 px-4 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg transition flex-shrink-0"
+          >
+            Join ${t().entry_fee}
+          </A>
+        </Show>
       </div>
 
       {/* Rankings */}
@@ -170,23 +160,19 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number; cloc
         />
       </div>
 
-      {/* CTA */}
-      <Show when={isReg() && t().spots_available > 0}>
-        <A href={`/checkout/${t().slug}`} class="block text-center py-3 bg-green-600 hover:bg-green-500 text-white font-bold text-sm transition-colors">
-          Join Now — ${t().entry_fee}
-        </A>
-      </Show>
-      <Show when={isLive()}>
-        <A href={`/tournaments/${t().slug}`} class="block text-center py-2.5 bg-[#0a0a0a] hover:bg-gray-900 text-gray-400 text-sm transition border-t border-gray-800/40">
-          Full Rankings →
-        </A>
-      </Show>
+      {/* Footer */}
+      <A
+        href={`/tournaments/${t().slug}`}
+        class="block text-center py-2 text-xs text-gray-600 hover:text-white bg-[#0a0a0a] border-t border-gray-800/30 transition"
+      >
+        {isLive() ? "Full Rankings →" : "View Details →"}
+      </A>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// COMPACT PANEL
+// COMPACT PANEL — Right column extra tournaments
 // ═══════════════════════════════════════════════════════════════════════════
 
 function CompactPanel(props: { tournament: Tournament }) {
@@ -205,24 +191,42 @@ function CompactPanel(props: { tournament: Tournament }) {
 
   return (
     <div class="bg-black rounded-xl overflow-hidden shadow-lg shadow-black/30">
-      <div class="px-4 py-3 flex items-center justify-between border-b border-gray-800/40">
-        <div class="flex items-center gap-2"><span>{icon()}</span><span class="text-sm font-semibold text-white">{t().name}</span></div>
-        <Show when={isLive()}><FlipClock targetDate={t().ends_at} size="sm" /></Show>
-        <Show when={isReg()}><FlipClock targetDate={t().starts_at} size="sm" /></Show>
+      {/* Header: title left, clock right */}
+      <div class="px-3 py-2.5 flex items-center justify-between border-b border-gray-800/30">
+        <div class="flex items-center gap-2">
+          <span class="text-sm">{icon()}</span>
+          <span class="text-sm font-semibold text-white">{t().name}</span>
+          <span class="text-[10px] text-gray-600">{t().reserved_spots}/{t().total_spots}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <Show when={isLive()}><FlipClock targetDate={t().ends_at} size="sm" /></Show>
+          <Show when={isReg()}><FlipClock targetDate={t().starts_at} size="sm" /></Show>
+        </div>
       </div>
       <MiniRanking rankings={rankings()} tournamentSlug={t().slug} maxRows={5} accountSize={Number(t().account_size)} />
-      <Show when={isReg() && t().spots_available > 0}>
-        <A href={`/checkout/${t().slug}`} class="block text-center py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold transition">Join — ${t().entry_fee}</A>
-      </Show>
-      <Show when={isLive() || !isReg()}>
-        <A href={`/tournaments/${t().slug}`} class="block text-center py-2 text-xs text-gray-600 hover:text-white bg-[#0a0a0a] border-t border-gray-800/40 transition">View →</A>
-      </Show>
+      <div class="flex items-center justify-between px-3 py-2 border-t border-gray-800/30 bg-[#0a0a0a]">
+        <div class="flex gap-1">
+          {(t().prizes as any[]).slice(0, 2).map((p) => (
+            <span class="text-[9px] bg-[#111] px-1.5 py-0.5 rounded text-gray-500">
+              <span class="text-yellow-400">#{p.rank_from}</span> {(p.label || p.type).split(" ").slice(0, 2).join(" ")}
+            </span>
+          ))}
+        </div>
+        <Show when={isReg() && t().spots_available > 0}>
+          <A href={`/checkout/${t().slug}`} class="px-3 py-1 bg-green-600 hover:bg-green-500 text-white text-[10px] font-bold rounded transition">
+            Join ${t().entry_fee}
+          </A>
+        </Show>
+        <Show when={isLive()}>
+          <A href={`/tournaments/${t().slug}`} class="text-[10px] text-gray-600 hover:text-white transition">View →</A>
+        </Show>
+      </div>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SCHEDULE CARD — No rankings, just info
+// SCHEDULE CARD — No rankings, date/price/prizes/countdown
 // ═══════════════════════════════════════════════════════════════════════════
 
 function ScheduleCard(props: { tournament: Tournament }) {
@@ -234,29 +238,41 @@ function ScheduleCard(props: { tournament: Tournament }) {
     <div class="bg-black rounded-xl overflow-hidden shadow-lg shadow-black/30">
       <div class="p-4">
         <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2"><span class="text-lg">{icon()}</span><h3 class="text-sm font-semibold text-white">{t().name}</h3></div>
-          <span class="text-[10px] text-gray-500 bg-[#111] px-2 py-0.5 rounded-full uppercase">Upcoming</span>
+          <div class="flex items-center gap-2">
+            <span class="text-lg">{icon()}</span>
+            <h3 class="text-sm font-semibold text-white">{t().name}</h3>
+          </div>
+          <span class="text-[10px] text-gray-500 bg-[#111] px-2 py-0.5 rounded-full">Upcoming</span>
         </div>
-        <div class="grid grid-cols-2 gap-1.5 mb-3">
-          <div class="bg-[#111] rounded-lg px-3 py-2">
+
+        <div class="grid grid-cols-3 gap-1.5 mb-3 text-center">
+          <div class="bg-[#111] rounded-lg py-2">
             <p class="text-[9px] text-gray-600 uppercase">Starts</p>
             <p class="text-xs font-medium text-white">{startDate().toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
-            <p class="text-[10px] text-gray-500">{startDate().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</p>
           </div>
-          <div class="bg-[#111] rounded-lg px-3 py-2">
-            <p class="text-[9px] text-gray-600 uppercase">Entry Fee</p>
+          <div class="bg-[#111] rounded-lg py-2">
+            <p class="text-[9px] text-gray-600 uppercase">Entry</p>
             <p class="text-xs font-medium text-green-400">${t().entry_fee}</p>
-            <p class="text-[10px] text-gray-500">${Number(t().account_size).toLocaleString()} acct</p>
+          </div>
+          <div class="bg-[#111] rounded-lg py-2">
+            <p class="text-[9px] text-gray-600 uppercase">Account</p>
+            <p class="text-xs font-medium text-white">${Number(t().account_size).toLocaleString()}</p>
           </div>
         </div>
+
         <div class="flex flex-wrap gap-1 mb-3">
           {(t().prizes as any[]).slice(0, 3).map((p) => (
-            <span class="text-[9px] bg-[#111] px-1.5 py-0.5 rounded text-gray-500"><span class="text-green-500">#{p.rank_from}</span> {p.label || p.type}</span>
+            <span class="text-[9px] bg-[#111] px-1.5 py-0.5 rounded text-gray-500">
+              <span class="text-yellow-400">#{p.rank_from}</span> {p.label || p.type}
+            </span>
           ))}
         </div>
-        <FlipClock targetDate={t().registration_opens_at} label="REGISTRATION IN" size="sm" />
+
+        <div class="flex items-center justify-between">
+          <FlipClock targetDate={t().registration_opens_at} label="Registration in" size="sm" />
+          <A href={`/tournaments/${t().slug}`} class="text-[10px] text-gray-600 hover:text-white transition">Details →</A>
+        </div>
       </div>
-      <A href={`/tournaments/${t().slug}`} class="block text-center py-2.5 bg-[#0a0a0a] border-t border-gray-800/40 text-xs text-gray-500 hover:text-white transition">Details →</A>
     </div>
   );
 }
@@ -264,7 +280,10 @@ function ScheduleCard(props: { tournament: Tournament }) {
 function EmptyPanel() {
   return (
     <div class="bg-black rounded-xl flex items-center justify-center h-full min-h-[300px] shadow-lg shadow-black/30">
-      <div class="text-center"><p class="text-gray-600 text-sm mb-2">No active tournaments</p><A href="/schedule" class="text-xs text-green-500 hover:text-green-400">View schedule →</A></div>
+      <div class="text-center">
+        <p class="text-gray-600 text-sm mb-2">No active tournaments</p>
+        <A href="/schedule" class="text-xs text-green-500 hover:text-green-400">View schedule →</A>
+      </div>
     </div>
   );
 }
