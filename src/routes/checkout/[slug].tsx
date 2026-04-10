@@ -110,12 +110,12 @@ export default function Checkout() {
     <>
       <Title>Join {tournament()?.name || "Tournament"} — Cryptonite</Title>
 
-      <div class="min-h-screen bg-brand-dark flex items-center justify-center p-4">
+      <div class="min-h-screen bg-black flex items-center justify-center p-4">
         <div class="w-full max-w-md">
           {/* Logo */}
           <div class="text-center mb-8">
             <a href="/" class="inline-flex items-center gap-2">
-              <span class="text-brand-gold font-bold text-2xl">CRYPTONITE</span>
+              <span class="text-green-500 font-bold text-2xl">CRYPTONITE</span>
               <span class="text-gray-400">Tournaments</span>
             </a>
           </div>
@@ -124,9 +124,9 @@ export default function Checkout() {
             <div class="text-center text-gray-500">Loading tournament...</div>
           }>
             {(t) => (
-              <div class="bg-brand-card border border-brand-border rounded-lg overflow-hidden">
+              <div class="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
                 {/* Tournament header */}
-                <div class="p-5 border-b border-brand-border">
+                <div class="p-5 border-b border-gray-800">
                   <h1 class="text-xl font-bold text-white mb-1">{t().name}</h1>
                   <p class="text-gray-400 text-sm">{t().description}</p>
                   <div class="grid grid-cols-3 gap-3 mt-4 text-sm">
@@ -136,7 +136,7 @@ export default function Checkout() {
                     </div>
                     <div>
                       <p class="text-gray-500 text-xs">Entry</p>
-                      <p class="text-brand-gold font-bold text-lg">${t().entry_fee}</p>
+                      <p class="text-green-500 font-bold text-lg">${t().entry_fee}</p>
                     </div>
                     <div>
                       <p class="text-gray-500 text-xs">Spots left</p>
@@ -160,7 +160,7 @@ export default function Checkout() {
                         required
                         value={email()}
                         onInput={(e) => setEmail(e.currentTarget.value)}
-                        class="w-full bg-brand-dark border border-brand-border rounded px-3 py-2 text-white text-sm focus:border-brand-gold outline-none"
+                        class="w-full bg-black border border-gray-800 rounded px-3 py-2 text-white text-sm focus:border-green-500 outline-none"
                         placeholder="your@email.com"
                       />
                     </div>
@@ -172,7 +172,7 @@ export default function Checkout() {
                         minLength={8}
                         value={password()}
                         onInput={(e) => setPassword(e.currentTarget.value)}
-                        class="w-full bg-brand-dark border border-brand-border rounded px-3 py-2 text-white text-sm focus:border-brand-gold outline-none"
+                        class="w-full bg-black border border-gray-800 rounded px-3 py-2 text-white text-sm focus:border-green-500 outline-none"
                         placeholder="Min 8 chars, 1 uppercase, 1 number"
                       />
                     </div>
@@ -182,7 +182,7 @@ export default function Checkout() {
                         type="text"
                         value={nickname()}
                         onInput={(e) => setNickname(e.currentTarget.value)}
-                        class="w-full bg-brand-dark border border-brand-border rounded px-3 py-2 text-white text-sm focus:border-brand-gold outline-none"
+                        class="w-full bg-black border border-gray-800 rounded px-3 py-2 text-white text-sm focus:border-green-500 outline-none"
                         placeholder="Your trader name"
                       />
                     </div>
@@ -192,7 +192,7 @@ export default function Checkout() {
                     <button
                       type="submit"
                       disabled={loading()}
-                      class="w-full bg-brand-gold text-black py-3 rounded font-bold hover:brightness-110 transition disabled:opacity-50"
+                      class="w-full bg-green-600 text-white py-3 rounded font-bold hover:brightness-110 transition disabled:opacity-50"
                     >
                       {loading() ? "Processing..." : "Continue"}
                     </button>
@@ -205,12 +205,12 @@ export default function Checkout() {
                 {/* Confirm step */}
                 <Show when={step() === "confirm"}>
                   <div class="p-5 space-y-4">
-                    <div class="bg-brand-dark rounded p-4">
+                    <div class="bg-black rounded p-4">
                       <p class="text-sm text-gray-400 mb-2">You're about to join:</p>
                       <p class="text-white font-bold text-lg">{t().name}</p>
-                      <p class="text-brand-gold font-bold text-2xl mt-1">${t().entry_fee}</p>
+                      <p class="text-green-500 font-bold text-2xl mt-1">${t().entry_fee}</p>
                     </div>
-                    <div class="bg-brand-dark rounded p-3 text-xs text-gray-400 space-y-1">
+                    <div class="bg-black rounded p-3 text-xs text-gray-400 space-y-1">
                       <p>• Account size: ${Number(t().account_size).toLocaleString()}</p>
                       <p>• Max drawdown: {t().max_drawdown_percentage}%</p>
                       <p>• Daily drawdown: {t().max_daily_drawdown_percentage}%</p>
@@ -222,7 +222,7 @@ export default function Checkout() {
                     <button
                       onClick={handleEnter}
                       disabled={loading()}
-                      class="w-full bg-brand-gold text-black py-3 rounded font-bold hover:brightness-110 transition disabled:opacity-50"
+                      class="w-full bg-green-600 text-white py-3 rounded font-bold hover:brightness-110 transition disabled:opacity-50"
                     >
                       {loading() ? "Entering..." : `Join Tournament — $${t().entry_fee}`}
                     </button>
@@ -245,7 +245,7 @@ export default function Checkout() {
                     </p>
                     <a
                       href={`https://broker.cryptonite.trade/?from_tournament=true&account_id=${entryResult()?.trading_account_id}`}
-                      class="block w-full bg-brand-gold text-black py-3 rounded font-bold hover:brightness-110 transition text-center"
+                      class="block w-full bg-green-600 text-white py-3 rounded font-bold hover:brightness-110 transition text-center"
                     >
                       Open Trading Station
                     </a>
@@ -274,11 +274,11 @@ export default function Checkout() {
                 </Show>
 
                 {/* Prizes footer */}
-                <div class="border-t border-brand-border p-4">
+                <div class="border-t border-gray-800 p-4">
                   <p class="text-xs text-gray-500 mb-2">Prizes</p>
                   <div class="flex flex-wrap gap-1.5">
                     {(t().prizes as any[]).map((p) => (
-                      <span class="text-xs bg-brand-dark px-2 py-0.5 rounded text-gray-300">
+                      <span class="text-xs bg-black px-2 py-0.5 rounded text-gray-300">
                         #{p.rank_from}{p.rank_to > p.rank_from ? `-${p.rank_to}` : ""}: {p.label || p.type}
                       </span>
                     ))}
