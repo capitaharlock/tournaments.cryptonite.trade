@@ -31,7 +31,7 @@ export default function Home() {
 
       {/* bg-[#1a1a1a] = lighter background, panels are black */}
       <div class="min-h-screen bg-[#1a1a1a]">
-        <div class="flex flex-col lg:flex-row min-h-[calc(100vh-48px)] gap-2.5 p-2.5">
+        <div class="flex flex-col lg:flex-row min-h-[calc(100vh-48px)] gap-4 p-4">
 
           {/* LEFT (42%) */}
           <div class="lg:w-[42%] flex-shrink-0">
@@ -48,7 +48,7 @@ export default function Home() {
           </div>
 
           {/* RIGHT (28%) */}
-          <div class="lg:flex-1 flex flex-col gap-2.5 overflow-y-auto">
+          <div class="lg:flex-1 flex flex-col gap-4 overflow-y-auto">
             <For each={rest()}>
               {(t) => <CompactPanel tournament={t} />}
             </For>
