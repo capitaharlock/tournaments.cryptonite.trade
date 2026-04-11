@@ -177,20 +177,21 @@ function DetailHero(props: { tournament: Tournament }) {
         : "from-orange-600 via-amber-500 to-yellow-400"
       : "from-gray-600 via-gray-500 to-gray-600";
 
-  const glowColor = () =>
-    isLive()
-      ? isSprint() ? "from-green-500" : isClassic() ? "from-blue-500" : "from-orange-500"
-      : "from-gray-500";
 
   return (
     <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50">
-      {/* ═══ Color banner — taller for detail page ═══ */}
-      <div class={`relative h-14 bg-gradient-to-r ${bannerGradient()}`}>
-        <div class="absolute inset-0 opacity-10" style="background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.15) 10px, rgba(255,255,255,0.15) 20px);" />
-        <div class="relative h-full flex items-center justify-between px-5">
-          <div class="flex items-center gap-2">
+      {/* ═══ BANNER — vivid, tall, impactful ═══ */}
+      <div class={`relative bg-gradient-to-r ${bannerGradient()}`}>
+        {/* Diagonal stripes */}
+        <div class="absolute inset-0 opacity-[0.08]" style="background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.2) 8px, rgba(255,255,255,0.2) 16px);" />
+        {/* Bottom fade to black */}
+        <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/80 to-transparent" />
+
+        <div class="relative px-6 pt-4 pb-5">
+          {/* Top: badges */}
+          <div class="flex items-center gap-2 mb-4">
             <Show when={isLive()}>
-              <span class="flex items-center gap-1.5 text-xs font-bold text-white bg-black/25 px-3 py-1 rounded-full backdrop-blur-sm">
+              <span class="flex items-center gap-1.5 text-[11px] font-bold text-white bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm">
                 <span class="relative flex h-2 w-2">
                   <span class="animate-ping absolute h-full w-full rounded-full bg-white opacity-75" />
                   <span class="relative rounded-full h-2 w-2 bg-white" />
@@ -199,35 +200,22 @@ function DetailHero(props: { tournament: Tournament }) {
               </span>
             </Show>
             <Show when={isReg()}>
-              <span class="text-xs font-bold text-white bg-black/25 px-3 py-1 rounded-full backdrop-blur-sm">REGISTRATION OPEN</span>
+              <span class="text-[11px] font-bold text-white bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm">REGISTRATION OPEN</span>
             </Show>
             <Show when={isFinished()}>
-              <span class="text-xs font-bold text-white bg-black/25 px-3 py-1 rounded-full backdrop-blur-sm">FINISHED</span>
+              <span class="text-[11px] font-bold text-white bg-black/30 px-3 py-1 rounded-full backdrop-blur-sm">FINISHED</span>
             </Show>
-            <span class="text-xs text-white/70 font-medium">
+            <span class="text-[11px] text-white/60">
               {isSprint() ? "⚡ SPRINT" : isClassic() ? "🏆 CLASSIC" : "🏔️ MARATHON"} • {totalDays()} DAYS
             </span>
           </div>
-          <span class="text-white/60 text-xs font-medium">
-            ${Number(t().account_size).toLocaleString()} account • ${t().entry_fee} entry
-          </span>
-        </div>
-      </div>
 
-      {/* ═══ Main hero body ═══ */}
-      <div class="relative">
-        {/* Glow bleed from banner */}
-        <div class={`absolute top-0 left-0 right-0 h-20 opacity-15 bg-gradient-to-b ${glowColor()} to-transparent`} />
-
-        <div class="relative px-5 py-5">
-          {/* Row 1: Title (big) + Countdown (big) */}
-          <div class="flex items-start justify-between mb-4">
+          {/* Main: Trophy + Title + Prize | Countdown */}
+          <div class="flex items-center justify-between">
+            {/* Left: trophy + title + prize */}
             <div class="flex items-center gap-4">
-              {/* Trophy */}
-              <div class={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 border ${
-                isLive() ? "bg-yellow-500/10 border-yellow-500/20" : "bg-gray-500/10 border-gray-600/20"
-              }`}>
-                <svg class={`w-7 h-7 ${isLive() ? "text-yellow-400" : "text-gray-400"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <div class="w-16 h-16 rounded-2xl bg-black/30 backdrop-blur-sm border border-white/10 flex items-center justify-center flex-shrink-0">
+                <svg class="w-8 h-8 text-yellow-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                   <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7" />
                   <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7" />
                   <path d="M4 22h16" />
@@ -237,59 +225,55 @@ function DetailHero(props: { tournament: Tournament }) {
                 </svg>
               </div>
               <div>
-                <h1 class="text-2xl font-black text-white leading-tight">{t().name}</h1>
-                <p class="text-sm text-gray-500 mt-0.5">{t().description || `${t().total_spots} players competing for prizes`}</p>
+                <h1 class="text-3xl font-black text-white leading-tight drop-shadow-lg">{t().name}</h1>
+                <div class="flex items-center gap-3 mt-1">
+                  <span class="text-sm text-white/60">${Number(t().account_size).toLocaleString()} account</span>
+                  <span class="text-white/30">•</span>
+                  <span class="text-sm text-white/60">{t().total_spots} players</span>
+                  <Show when={cashPrize()}>
+                    <span class="text-white/30">•</span>
+                    <span class="text-sm font-bold text-yellow-300">1st Prize ${cashPrize()}</span>
+                  </Show>
+                </div>
               </div>
             </div>
 
-            {/* Big countdown — right side */}
-            <div class="flex-shrink-0">
+            {/* Right: BIG countdown */}
+            <div class="flex-shrink-0 bg-black/30 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/10">
               <Show when={isLive()}>
                 <FlipClock targetDate={t().ends_at} label="ENDS IN" size="lg" />
               </Show>
               <Show when={isReg()}>
                 <FlipClock targetDate={t().starts_at} label="STARTS IN" size="lg" />
               </Show>
-            </div>
-          </div>
-
-          {/* Row 2: Prize callout + Progress */}
-          <div class="flex items-center justify-between">
-            {/* Prize big */}
-            <Show when={cashPrize()}>
-              <div class="flex items-center gap-3">
-                <div class="flex items-baseline gap-1">
-                  <span class="text-[10px] text-gray-500 uppercase">1st Prize</span>
-                  <span class="text-3xl font-black text-yellow-400">${cashPrize()}</span>
-                </div>
-                <span class="text-gray-700">|</span>
-                <span class="text-sm text-gray-500">{t().reserved_spots}/{t().total_spots} players</span>
-              </div>
-            </Show>
-
-            {/* Progress or spots */}
-            <div class="flex-1 max-w-xs ml-auto">
-              <Show when={isLive()}>
-                <TournamentProgress startsAt={t().starts_at} endsAt={t().ends_at} totalDays={totalDays()} />
-              </Show>
-              <Show when={isReg()}>
-                <div>
-                  <div class="flex items-center justify-between text-[10px] mb-1">
-                    <span class="text-gray-500">{t().reserved_spots}/{t().total_spots} spots</span>
-                    <span class="text-gray-600">{t().spots_available} left</span>
-                  </div>
-                  <div class="h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
-                    <div class="h-full bg-gradient-to-r from-green-600 to-green-400 rounded-full" style={`width:${spotsPercent()}%`} />
-                  </div>
-                </div>
+              <Show when={isFinished()}>
+                <p class="text-gray-400 text-sm font-medium">Tournament Ended</p>
               </Show>
             </div>
           </div>
         </div>
       </div>
 
+      {/* ═══ Progress row ═══ */}
+      <Show when={isLive()}>
+        <div class="px-6 py-2 bg-[#0a0a0a]">
+          <TournamentProgress startsAt={t().starts_at} endsAt={t().ends_at} totalDays={totalDays()} />
+        </div>
+      </Show>
+      <Show when={isReg()}>
+        <div class="px-6 py-2 bg-[#0a0a0a]">
+          <div class="flex items-center justify-between text-[10px] mb-1">
+            <span class="text-gray-500">{t().reserved_spots}/{t().total_spots} spots filled</span>
+            <span class="text-gray-600">{t().spots_available} remaining</span>
+          </div>
+          <div class="h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-green-600 to-green-400 rounded-full" style={`width:${spotsPercent()}%`} />
+          </div>
+        </div>
+      </Show>
+
       {/* ═══ Stats strip ═══ */}
-      <div class="grid grid-cols-5 gap-px bg-[#1a1a1a] border-t border-[#1a1a1a]">
+      <div class="grid grid-cols-5 gap-px bg-[#1a1a1a]">
         <StatCell label="Account" value={`$${Number(t().account_size).toLocaleString()}`} />
         <StatCell label="Players" value={`${t().reserved_spots} / ${t().total_spots}`} />
         <StatCell label="Entry" value={`$${t().entry_fee}`} accent />
