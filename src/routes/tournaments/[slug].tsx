@@ -168,14 +168,13 @@ function DetailHero(props: { tournament: Tournament }) {
   };
   const spotsPercent = () => Math.max((t().reserved_spots / t().total_spots) * 100, 3);
 
+  // Always use tournament type color — even finished tournaments keep their identity
   const bannerGradient = () =>
-    isLive()
-      ? isSprint()
-        ? "from-green-600 via-emerald-500 to-teal-400"
-        : isClassic()
-        ? "from-blue-600 via-indigo-500 to-purple-400"
-        : "from-orange-600 via-amber-500 to-yellow-400"
-      : "from-gray-600 via-gray-500 to-gray-600";
+    isSprint()
+      ? "from-green-600 via-emerald-500 to-teal-400"
+      : isClassic()
+      ? "from-blue-600 via-indigo-500 to-purple-400"
+      : "from-orange-600 via-amber-500 to-yellow-400";
 
 
   return (
