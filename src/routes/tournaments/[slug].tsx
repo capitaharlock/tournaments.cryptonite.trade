@@ -153,7 +153,7 @@ export default function TournamentDetail() {
                         <div class="flex items-center justify-between py-2 px-3 bg-[#0a0a0a] rounded-lg">
                           <div class="flex items-center gap-2">
                             <span class="text-yellow-400 font-mono text-xs font-bold">
-                              #{p.rank_from}{p.rank_to > p.rank_from ? `–${p.rank_to}` : ""}
+                              x{p.rank_to - p.rank_from + 1}
                             </span>
                           </div>
                           <span class="text-sm text-white font-medium">{p.label || p.type}</span>

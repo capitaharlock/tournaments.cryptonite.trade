@@ -279,7 +279,7 @@ export default function Checkout() {
                   <div class="flex flex-wrap gap-1.5">
                     {(t().prizes as any[]).map((p) => (
                       <span class="text-xs bg-black px-2 py-0.5 rounded text-gray-300">
-                        #{p.rank_from}{p.rank_to > p.rank_from ? `-${p.rank_to}` : ""}: {p.label || p.type}
+                        x{p.rank_to - p.rank_from + 1} {p.type === "cash" ? `$${p.value}` : (p.label || p.type).replace("Free ", "")}
                       </span>
                     ))}
                   </div>

@@ -136,7 +136,7 @@ export default function TournamentHero(props: Props) {
             <div class="flex items-center gap-1.5 flex-1 overflow-hidden">
               {(t().prizes as any[]).map((p) => (
                 <span class="text-[9px] bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded-full text-gray-400 whitespace-nowrap">
-                  <span class="text-yellow-400/80">#{p.rank_from}{p.rank_to > p.rank_from ? `–${p.rank_to}` : ""}</span>{" "}{(p.label || p.type).replace("Free ", "").replace(/\$\d+K /g, "")}
+                  <span class="text-yellow-400/80">x{p.rank_to - p.rank_from + 1}</span>{" "}{p.type === "cash" ? `$${p.value}` : (p.label || p.type).replace("Free ", "").replace(/\$\d+K /g, "")}
                 </span>
               ))}
             </div>
