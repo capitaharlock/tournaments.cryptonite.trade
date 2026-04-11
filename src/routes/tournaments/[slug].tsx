@@ -1,28 +1,33 @@
-import { createResource, Show, onCleanup } from "solid-js";
-import { useParams } from "@solidjs/router";
+import { createResource, Show, onCleanup, createMemo } from "solid-js";
+import { useParams, A } from "@solidjs/router";
 import { Title } from "@solidjs/meta";
 import { fetchTournament, fetchRankings } from "../../services/api";
+import { generateMockRankings } from "../../services/mockData";
 import Header from "../../components/layout/Header";
-import Footer from "../../components/layout/Footer";
-import Countdown from "../../components/tournament/Countdown";
+import TournamentHero from "../../components/tournament/TournamentHero";
 import RankingTable from "../../components/tournament/RankingTable";
 
 export default function TournamentDetail() {
   const params = useParams<{ slug: string }>();
   const [tournament] = createResource(() => params.slug, fetchTournament);
-  const [rankings, { refetch }] = createResource(
+  const [apiRankings, { refetch }] = createResource(
     () => tournament()?.id,
     (id) => (id ? fetchRankings(id, 100) : Promise.resolve([]))
   );
 
-  // Auto-refresh rankings every 30s for active tournaments
+  const rankings = createMemo(() => {
+    const real = apiRankings();
+    if (real && real.length > 0) return real;
+    return generateMockRankings(30, tournament()?.name?.includes("Sprint") ? 6 : 8);
+  });
+
   const interval = setInterval(() => {
     if (tournament()?.status === "active") refetch();
   }, 30000);
   onCleanup(() => clearInterval(interval));
 
   const isLive = () => tournament()?.status === "active";
-  const isRegistering = () => tournament()?.status === "registration";
+  const isReg = () => tournament()?.status === "registration";
   const isFinished = () => tournament()?.status === "finished";
 
   return (
@@ -30,132 +35,148 @@ export default function TournamentDetail() {
       <Title>{tournament()?.name || "Tournament"} — Cryptonite</Title>
       <Header />
 
-      <main class="max-w-6xl mx-auto px-4 py-6">
+      <div class="min-h-screen bg-[#1a1a1a]">
         <Show when={tournament()} fallback={
-          <div class="text-center py-16 text-gray-500">Loading tournament...</div>
+          <div class="text-center py-16 text-gray-600">Loading...</div>
         }>
           {(t) => (
-            <>
-              {/* ─── Header ─── */}
-              <div class="flex items-start justify-between mb-6">
-                <div>
-                  <div class="flex items-center gap-3 mb-1">
-                    <h1 class="text-2xl font-bold text-white">{t().name}</h1>
-                    <Show when={isLive()}>
-                      <span class="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded">
-                        <span class="relative flex h-2 w-2">
-                          <span class="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75" />
-                          <span class="relative rounded-full h-2 w-2 bg-green-500" />
-                        </span>
-                        LIVE
+            <div class="p-4 max-w-6xl mx-auto space-y-4">
+
+              {/* ═══ HERO — same component as home ═══ */}
+              <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50">
+                <TournamentHero tournament={t()} />
+
+                {/* Stats row below hero */}
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-px bg-[#1a1a1a]">
+                  <StatCell label="Account Size" value={`$${Number(t().account_size).toLocaleString()}`} />
+                  <StatCell label="Players" value={`${t().reserved_spots} / ${t().total_spots}`} />
+                  <StatCell label="Entry Fee" value={`$${t().entry_fee}`} accent />
+                  <StatCell label="Max Drawdown" value={`${t().max_drawdown_percentage}%`} />
+                  <StatCell label="Daily Drawdown" value={`${t().max_daily_drawdown_percentage}%`} />
+                </div>
+              </div>
+
+              {/* ═══ MAIN CONTENT — 2 columns on desktop ═══ */}
+              <div class="flex flex-col lg:flex-row gap-4">
+
+                {/* LEFT — Rankings (main) */}
+                <div class="flex-1">
+                  <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50">
+                    {/* Rankings header */}
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a]">
+                      <div class="flex items-center gap-2">
+                        <h2 class="text-sm font-bold text-white">
+                          {isLive() ? "Live Rankings" : isFinished() ? "Final Rankings" : "Participants"}
+                        </h2>
+                        <Show when={isLive()}>
+                          <span class="flex items-center gap-1 text-[10px] text-green-400">
+                            <span class="relative flex h-1.5 w-1.5">
+                              <span class="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75" />
+                              <span class="relative rounded-full h-1.5 w-1.5 bg-green-500" />
+                            </span>
+                            Updates every 30s
+                          </span>
+                        </Show>
+                      </div>
+                      <span class="text-[10px] text-gray-600">
+                        {rankings().length} of {t().total_spots} participants
                       </span>
-                    </Show>
-                    <Show when={isRegistering()}>
-                      <span class="text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded">REGISTRATION OPEN</span>
-                    </Show>
-                    <Show when={isFinished()}>
-                      <span class="text-xs bg-gray-700 text-gray-400 px-2 py-0.5 rounded">FINISHED</span>
+                    </div>
+
+                    {/* Rankings table */}
+                    <Show
+                      when={rankings().length > 0}
+                      fallback={
+                        <div class="text-center py-16 text-gray-700 text-sm">
+                          {isReg() ? "Rankings appear when the tournament starts" : "No participants yet"}
+                        </div>
+                      }
+                    >
+                      <RankingTable rankings={rankings()} prizes={t().prizes as any} />
                     </Show>
                   </div>
-                  <p class="text-gray-400 text-sm">{t().description}</p>
                 </div>
-                <Show when={isRegistering() && t().spots_available > 0}>
-                  <a
-                    href={`/checkout/${t().slug}`}
-                    class="px-5 py-2.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-md transition flex-shrink-0"
-                  >
-                    Join — ${t().entry_fee}
-                  </a>
-                </Show>
-              </div>
 
-              {/* ─── Stats bar ─── */}
-              <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-                <Stat label="Account Size" value={`$${Number(t().account_size).toLocaleString()}`} />
-                <Stat label="Players" value={`${t().reserved_spots} / ${t().total_spots}`} />
-                <Stat label="Entry Fee" value={`$${t().entry_fee}`} />
-                <Stat label="Max Drawdown" value={`${t().max_drawdown_percentage}%`} />
-                <div class="bg-gray-900 border border-gray-800 rounded-lg p-3">
-                  <Show when={isLive()}>
-                    <Countdown targetDate={t().ends_at} label="Ends in" />
-                  </Show>
-                  <Show when={isRegistering()}>
-                    <Countdown targetDate={t().starts_at} label="Starts in" />
-                  </Show>
-                  <Show when={isFinished()}>
-                    <p class="text-gray-500 text-xs">Finished</p>
-                    <p class="text-white text-sm font-medium">Completed</p>
-                  </Show>
-                </div>
-              </div>
+                {/* RIGHT — Sidebar info */}
+                <div class="lg:w-72 flex flex-col gap-4">
 
-              {/* ─── Prize breakdown ─── */}
-              <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6">
-                <h2 class="text-sm font-semibold text-gray-400 mb-3">PRIZES</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {(t().prizes as any[]).map((p) => (
-                    <div class="bg-black rounded px-3 py-2">
-                      <p class="text-green-400 font-mono text-xs">
-                        #{p.rank_from}{p.rank_to > p.rank_from ? `–${p.rank_to}` : ""}
-                      </p>
-                      <p class="text-white text-sm font-medium mt-0.5">{p.label || p.type}</p>
+                  {/* Join CTA */}
+                  <Show when={isReg() && t().spots_available > 0}>
+                    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50 p-5 text-center">
+                      <p class="text-gray-400 text-sm mb-1">Ready to compete?</p>
+                      <p class="text-white text-2xl font-black mb-3">${t().entry_fee}</p>
+                      <A
+                        href={`/checkout/${t().slug}`}
+                        class="block w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition text-sm"
+                      >
+                        Join This Tournament
+                      </A>
+                      <p class="text-gray-600 text-[10px] mt-2">{t().spots_available} spots remaining</p>
                     </div>
-                  ))}
+                  </Show>
+
+                  {/* Prize breakdown */}
+                  <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50">
+                    <div class="px-4 py-3 border-b border-[#1a1a1a]">
+                      <h3 class="text-sm font-bold text-white">Prize Breakdown</h3>
+                    </div>
+                    <div class="p-3 space-y-1.5">
+                      {(t().prizes as any[]).map((p) => (
+                        <div class="flex items-center justify-between py-2 px-3 bg-[#0a0a0a] rounded-lg">
+                          <div class="flex items-center gap-2">
+                            <span class="text-yellow-400 font-mono text-xs font-bold">
+                              #{p.rank_from}{p.rank_to > p.rank_from ? `–${p.rank_to}` : ""}
+                            </span>
+                          </div>
+                          <span class="text-sm text-white font-medium">{p.label || p.type}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Rules */}
+                  <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50">
+                    <div class="px-4 py-3 border-b border-[#1a1a1a]">
+                      <h3 class="text-sm font-bold text-white">Rules</h3>
+                    </div>
+                    <div class="p-4 space-y-2.5 text-sm">
+                      <RuleRow label="Max Drawdown" value={`${t().max_drawdown_percentage}%`} />
+                      <RuleRow label="Daily Drawdown" value={`${t().max_daily_drawdown_percentage}%`} />
+                      <RuleRow label="Ranked By" value="Profit %" />
+                      <RuleRow label="Instruments" value="25 crypto pairs" />
+                      <RuleRow label="Leverage" value="None (1:1)" />
+                      <RuleRow label="Elimination" value="Drawdown breach" />
+                    </div>
+                  </div>
+
+                  {/* Back to all */}
+                  <A href="/" class="text-center text-xs text-gray-600 hover:text-white transition py-2">
+                    ← All Tournaments
+                  </A>
                 </div>
               </div>
-
-              {/* ─── Rankings ─── */}
-              <div class="mb-6">
-                <div class="flex items-center justify-between mb-3">
-                  <h2 class="text-sm font-semibold text-gray-400">
-                    {isLive() ? "LIVE RANKINGS" : isFinished() ? "FINAL RANKINGS" : "REGISTERED PARTICIPANTS"}
-                  </h2>
-                  <Show when={isLive()}>
-                    <span class="text-xs text-gray-600">Auto-refreshes every 30s</span>
-                  </Show>
-                </div>
-
-                <div class="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
-                  <Show
-                    when={rankings() && rankings()!.length > 0}
-                    fallback={
-                      <div class="text-center py-12 text-gray-600 text-sm">
-                        {isRegistering() ? "Rankings will appear when the tournament starts" : "No participants yet"}
-                      </div>
-                    }
-                  >
-                    <RankingTable rankings={rankings()!} prizes={t().prizes as any} />
-                  </Show>
-                </div>
-              </div>
-
-              {/* ─── Entry CTA (bottom) ─── */}
-              <Show when={isRegistering() && t().spots_available > 0}>
-                <div class="text-center py-6 bg-gray-900 border border-gray-800 rounded-lg">
-                  <p class="text-gray-400 mb-3">{t().spots_available} spots remaining</p>
-                  <a
-                    href={`/checkout/${t().slug}`}
-                    class="inline-block px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg text-lg transition"
-                  >
-                    Join This Tournament — ${t().entry_fee}
-                  </a>
-                </div>
-              </Show>
-            </>
+            </div>
           )}
         </Show>
-      </main>
-
-      <Footer />
+      </div>
     </>
   );
 }
 
-function Stat(props: { label: string; value: string }) {
+function StatCell(props: { label: string; value: string; accent?: boolean }) {
   return (
-    <div class="bg-gray-900 border border-gray-800 rounded-lg p-3">
-      <p class="text-gray-500 text-xs">{props.label}</p>
-      <p class="text-white text-sm font-medium">{props.value}</p>
+    <div class="bg-black px-4 py-3">
+      <p class="text-[9px] text-gray-600 uppercase tracking-wider">{props.label}</p>
+      <p class={`text-sm font-bold ${props.accent ? "text-green-400" : "text-white"}`}>{props.value}</p>
+    </div>
+  );
+}
+
+function RuleRow(props: { label: string; value: string }) {
+  return (
+    <div class="flex items-center justify-between">
+      <span class="text-gray-500">{props.label}</span>
+      <span class="text-white font-medium">{props.value}</span>
     </div>
   );
 }
