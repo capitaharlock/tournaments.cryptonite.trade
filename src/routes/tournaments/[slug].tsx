@@ -245,23 +245,22 @@ function DetailHero(props: { tournament: Tournament }) {
               {/* Line 2: Tournament name — big */}
               <h1 class="text-3xl font-black text-white leading-tight drop-shadow-md mb-4">{t().name}</h1>
 
-              {/* Prizes — single row: badge + name together */}
-              <div class="flex items-center gap-4 flex-wrap">
+              {/* Prizes — one box per prize */}
+              <div class="flex items-center gap-2 flex-wrap">
                 {(t().prizes as any[]).map((p, i) => (
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-white bg-black/40 border border-white/20 rounded px-1.5 py-0.5">
-                      x{p.rank_to - p.rank_from + 1}
-                    </span>
-                    <span class={`font-black leading-none drop-shadow-md ${
-                      i === 0 ? "text-2xl text-yellow-300" : "text-lg text-white"
-                    }`}>
+                  <div class={`flex items-center gap-2 rounded-lg px-3 py-2 border ${
+                    i === 0
+                      ? "bg-yellow-400/10 border-yellow-400/30"
+                      : "bg-black/30 border-white/10"
+                  }`}>
+                    <span class={`text-lg font-black ${i === 0 ? "text-yellow-300" : "text-white"}`}>
                       {p.type === "cash" ? `$${p.value}` : (p.label || p.type).replace("Free ", "").replace(/\$\d+K /g, "")}
+                    </span>
+                    <span class={`text-xs font-bold ${i === 0 ? "text-yellow-300/60" : "text-white/40"}`}>
+                      x{p.rank_to - p.rank_from + 1}
                     </span>
                   </div>
                 ))}
-                <span class="text-[10px] text-white/30">
-                  {(t().prizes as any[]).reduce((s, p) => s + (p.rank_to - p.rank_from + 1), 0)} winners
-                </span>
               </div>
             </div>
 
