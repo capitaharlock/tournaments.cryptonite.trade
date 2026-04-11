@@ -249,7 +249,7 @@ function DetailHero(props: { tournament: Tournament }) {
               <div class="flex items-center gap-5 flex-wrap">
                 {(t().prizes as any[]).map((p, i) => (
                   <div>
-                    <p class="text-[9px] text-white/40 uppercase tracking-wider mb-0.5">
+                    <p class="text-xs text-white/50 font-bold mb-0.5">
                       #{p.rank_from}{p.rank_to > p.rank_from ? `–${p.rank_to}` : ""}
                     </p>
                     <p class={`font-black leading-none drop-shadow-md ${
