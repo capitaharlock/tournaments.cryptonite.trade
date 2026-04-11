@@ -31,3 +31,14 @@ body {
 }
 
 .rank-badge-animate { animation: rank-pulse 0.4s ease-in-out 2; }
+
+/* Flip clock animation */
+@keyframes flip {
+  0% { transform: perspective(200px) rotateX(0deg); }
+  50% { transform: perspective(200px) rotateX(-90deg); }
+  100% { transform: perspective(200px) rotateX(0deg); }
+}
+
+.animate-flip {
+  animation: flip 0.3s ease-in-out;
+}

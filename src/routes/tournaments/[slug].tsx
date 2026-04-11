@@ -246,7 +246,7 @@ function DetailHero(props: { tournament: Tournament }) {
                 <FlipClock targetDate={t().starts_at} label="STARTS IN" size="lg" />
               </Show>
               <Show when={isFinished()}>
-                <p class="text-gray-400 text-sm font-medium">Tournament Ended</p>
+                <FlipClock targetDate={new Date(Date.now() + 30 * 86400000).toISOString()} label="NEXT IN" size="lg" />
               </Show>
             </div>
           </div>
