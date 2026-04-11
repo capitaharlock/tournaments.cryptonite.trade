@@ -245,27 +245,23 @@ function DetailHero(props: { tournament: Tournament }) {
               {/* Line 2: Tournament name — big */}
               <h1 class="text-3xl font-black text-white leading-tight drop-shadow-md mb-4">{t().name}</h1>
 
-              {/* Prizes — BIG, marketing style */}
-              <div class="flex items-end gap-4 flex-wrap">
-                <Show when={cashPrize()}>
+              {/* Prizes — horizontal row, all big */}
+              <div class="flex items-center gap-5 flex-wrap">
+                {(t().prizes as any[]).map((p, i) => (
                   <div>
-                    <p class="text-[9px] text-white/40 uppercase tracking-wider mb-0.5">1st Prize</p>
-                    <p class="text-4xl font-black text-yellow-300 leading-none drop-shadow-lg">${cashPrize()}</p>
+                    <p class="text-[9px] text-white/40 uppercase tracking-wider mb-0.5">
+                      #{p.rank_from}{p.rank_to > p.rank_from ? `–${p.rank_to}` : ""}
+                    </p>
+                    <p class={`font-black leading-none drop-shadow-md ${
+                      i === 0 ? "text-3xl text-yellow-300" : "text-xl text-white"
+                    }`}>
+                      {p.type === "cash" ? `$${p.value}` : (p.label || p.type).replace("Free ", "").replace(/\$\d+K /g, "")}
+                    </p>
                   </div>
-                </Show>
-                <div class="flex flex-col gap-1.5 pb-0.5">
-                  {(t().prizes as any[]).slice(1).map((p) => (
-                    <div class="flex items-center gap-2">
-                      <span class="text-yellow-300/70 font-mono text-xs font-bold">
-                        #{p.rank_from}{p.rank_to > p.rank_from ? `–${p.rank_to}` : ""}
-                      </span>
-                      <span class="text-sm text-white/80">{(p.label || p.type).replace("Free ", "")}</span>
-                    </div>
-                  ))}
-                  <span class="text-[10px] text-white/30">
-                    {(t().prizes as any[]).reduce((s, p) => s + (p.rank_to - p.rank_from + 1), 0)} winners total
-                  </span>
-                </div>
+                ))}
+                <span class="text-[10px] text-white/30 self-end pb-0.5">
+                  {(t().prizes as any[]).reduce((s, p) => s + (p.rank_to - p.rank_from + 1), 0)} winners
+                </span>
               </div>
             </div>
 
