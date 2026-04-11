@@ -221,52 +221,56 @@ function DetailHero(props: { tournament: Tournament }) {
         <div class="absolute inset-0 opacity-[0.08]" style="background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.2) 8px, rgba(255,255,255,0.2) 16px);" />
         <div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/60 to-transparent" />
 
-        <div class="relative px-5 py-4">
-          <div class="flex items-center justify-between">
-            {/* Left: badge + title + prizes */}
+        <div class="relative px-6 py-5">
+          <div class="flex items-start justify-between gap-6">
+            {/* LEFT: Title (2 lines) + Prizes big */}
             <div class="flex-1 min-w-0">
-              {/* Badges row */}
-              <div class="flex items-center gap-2 mb-2">
+              {/* Line 1: Type label */}
+              <p class="text-sm text-white/60 font-medium mb-0.5">
+                {totalDays()} Day {isSprint() ? "Sprint" : isClassic() ? "Classic" : "Marathon"}
                 <Show when={isLive()}>
-                  <span class="flex items-center gap-1.5 text-[11px] font-bold text-white bg-black/30 px-2.5 py-0.5 rounded-full">
-                    <span class="relative flex h-2 w-2"><span class="animate-ping absolute h-full w-full rounded-full bg-white opacity-75" /><span class="relative rounded-full h-2 w-2 bg-white" /></span>
+                  <span class="ml-2 inline-flex items-center gap-1 text-[11px] font-bold text-white bg-black/30 px-2 py-0.5 rounded-full align-middle">
+                    <span class="relative flex h-1.5 w-1.5"><span class="animate-ping absolute h-full w-full rounded-full bg-white opacity-75" /><span class="relative rounded-full h-1.5 w-1.5 bg-white" /></span>
                     LIVE
                   </span>
                 </Show>
                 <Show when={isReg()}>
-                  <span class="text-[11px] font-bold text-white bg-black/30 px-2.5 py-0.5 rounded-full">OPEN</span>
+                  <span class="ml-2 text-[11px] font-bold text-white bg-black/30 px-2 py-0.5 rounded-full align-middle">OPEN</span>
                 </Show>
                 <Show when={isFinished()}>
-                  <span class="text-[11px] font-bold text-white bg-black/30 px-2.5 py-0.5 rounded-full">FINISHED</span>
+                  <span class="ml-2 text-[11px] font-bold text-white/50 bg-black/30 px-2 py-0.5 rounded-full align-middle">FINISHED</span>
                 </Show>
-                <span class="text-[11px] text-white/50">
-                  {isSprint() ? "⚡ SPRINT" : isClassic() ? "🏆 CLASSIC" : "🏔️ MARATHON"} • {totalDays()}d
-                </span>
-              </div>
+              </p>
 
-              {/* Title — big */}
-              <h1 class="text-2xl font-black text-white leading-tight drop-shadow-md mb-2">{t().name}</h1>
+              {/* Line 2: Tournament name — big */}
+              <h1 class="text-3xl font-black text-white leading-tight drop-shadow-md mb-4">{t().name}</h1>
 
-              {/* Prize pills — marketing style */}
-              <div class="flex items-center gap-2 flex-wrap">
+              {/* Prizes — BIG, marketing style */}
+              <div class="flex items-end gap-4 flex-wrap">
                 <Show when={cashPrize()}>
-                  <span class="text-sm font-black text-yellow-300 bg-black/25 px-3 py-1 rounded-full">
-                    1st Prize ${cashPrize()}
-                  </span>
+                  <div>
+                    <p class="text-[9px] text-white/40 uppercase tracking-wider mb-0.5">1st Prize</p>
+                    <p class="text-4xl font-black text-yellow-300 leading-none drop-shadow-lg">${cashPrize()}</p>
+                  </div>
                 </Show>
-                {(t().prizes as any[]).slice(1).map((p) => (
-                  <span class="text-[10px] text-white/70 bg-black/20 px-2 py-0.5 rounded-full">
-                    #{p.rank_from}{p.rank_to > p.rank_from ? `–${p.rank_to}` : ""} {(p.label || p.type).replace("Free ", "").replace(/\$\d+K /g, "")}
+                <div class="flex flex-col gap-1.5 pb-0.5">
+                  {(t().prizes as any[]).slice(1).map((p) => (
+                    <div class="flex items-center gap-2">
+                      <span class="text-yellow-300/70 font-mono text-xs font-bold">
+                        #{p.rank_from}{p.rank_to > p.rank_from ? `–${p.rank_to}` : ""}
+                      </span>
+                      <span class="text-sm text-white/80">{(p.label || p.type).replace("Free ", "")}</span>
+                    </div>
+                  ))}
+                  <span class="text-[10px] text-white/30">
+                    {(t().prizes as any[]).reduce((s, p) => s + (p.rank_to - p.rank_from + 1), 0)} winners total
                   </span>
-                ))}
-                <span class="text-[10px] text-white/40">
-                  {(t().prizes as any[]).reduce((s, p) => s + (p.rank_to - p.rank_from + 1), 0)} winners
-                </span>
+                </div>
               </div>
             </div>
 
-            {/* Right: countdown — no extra wrapper */}
-            <div class="flex-shrink-0 ml-4">
+            {/* RIGHT: Countdown — big, no wrapper, just the clock */}
+            <div class="flex-shrink-0">
               <Show when={isLive()}>
                 <FlipClock targetDate={t().ends_at} label="ENDS IN" size="lg" />
               </Show>
