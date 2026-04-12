@@ -245,7 +245,7 @@ function DetailHero(props: { tournament: Tournament; demoTarget?: string }) {
             <div class="flex-1 min-w-0">
               {/* Line 1: Type label */}
               <p class="text-sm text-white/60 font-medium mb-0.5">
-                {totalDays()} Day {isSprint() ? "Sprint" : isClassic() ? "Classic" : "Marathon"}
+                Tournament • {totalDays()} Day {isSprint() ? "Sprint" : isClassic() ? "Classic" : "Marathon"}
                 <Show when={isLive()}>
                   <span class="ml-2 inline-flex items-center gap-1 text-[11px] font-bold text-white bg-black/30 px-2 py-0.5 rounded-full align-middle">
                     <span class="relative flex h-1.5 w-1.5"><span class="animate-ping absolute h-full w-full rounded-full bg-white opacity-75" /><span class="relative rounded-full h-1.5 w-1.5 bg-white" /></span>
@@ -274,7 +274,7 @@ function DetailHero(props: { tournament: Tournament; demoTarget?: string }) {
                     <span class={`text-lg font-black ${i === 0 ? "text-yellow-300" : "text-white"}`}>
                       {p.type === "cash" ? `$${p.value}` : (p.label || p.type).replace("Free ", "").replace(/\$\d+K /g, "")}
                     </span>
-                    <span class={`text-sm font-bold ${i === 0 ? "text-yellow-300/60" : "text-white/40"}`}>
+                    <span class={`text-base font-black ${i === 0 ? "text-yellow-200" : "text-white/70"}`}>
                       x{p.rank_to - p.rank_from + 1}
                     </span>
                   </div>
