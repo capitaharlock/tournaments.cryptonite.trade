@@ -48,7 +48,7 @@ export default function TournamentDetail() {
             <div class="p-4 max-w-6xl mx-auto space-y-4">
 
               {/* ═══ DETAIL HERO — bigger, more color, prominent countdown ═══ */}
-              <DetailHero tournament={t()} />
+              <DetailHero tournament={t()} demoTarget={demoTarget()} />
 
               {/* ═══ MAIN CONTENT — 2 columns on desktop ═══ */}
               <div class="flex flex-col lg:flex-row gap-4">
@@ -194,7 +194,7 @@ export default function TournamentDetail() {
   );
 }
 
-function DetailHero(props: { tournament: Tournament }) {
+function DetailHero(props: { tournament: Tournament; demoTarget?: string }) {
   const t = () => props.tournament;
   const isLive = () => t().status === "active";
   const isReg = () => t().status === "registration";
@@ -276,7 +276,7 @@ function DetailHero(props: { tournament: Tournament }) {
                 <FlipClock targetDate={t().starts_at} label="STARTS IN" size="lg" />
               </Show>
               <Show when={isFinished()}>
-                <FlipClock targetDate={demoTarget()} label="NEXT IN" size="lg" />
+                <FlipClock targetDate={props.demoTarget || new Date(Date.now() + 30 * 86400000).toISOString()} label="NEXT IN" size="lg" />
               </Show>
             </div>
           </div>
