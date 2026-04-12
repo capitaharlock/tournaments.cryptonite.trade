@@ -1,4 +1,4 @@
-import { createResource, Show, onCleanup, createMemo } from "solid-js";
+import { createResource, createSignal, Show, onCleanup, createMemo } from "solid-js";
 import { useParams, A } from "@solidjs/router";
 import { Title } from "@solidjs/meta";
 import { fetchTournament, fetchRankings } from "../../services/api";
@@ -31,6 +31,9 @@ export default function TournamentDetail() {
   const isLive = () => tournament()?.status === "active";
   const isReg = () => tournament()?.status === "registration";
   const isFinished = () => tournament()?.status === "finished";
+
+  // Demo countdown — client-side only (30 days from now)
+  const [demoTarget] = createSignal(new Date(Date.now() + 30 * 86400000).toISOString());
 
   return (
     <>
@@ -273,7 +276,7 @@ function DetailHero(props: { tournament: Tournament }) {
                 <FlipClock targetDate={t().starts_at} label="STARTS IN" size="lg" />
               </Show>
               <Show when={isFinished()}>
-                <FlipClock targetDate={new Date(Date.now() + 30 * 86400000).toISOString()} label="NEXT IN" size="lg" />
+                <FlipClock targetDate={demoTarget()} label="NEXT IN" size="lg" />
               </Show>
             </div>
           </div>

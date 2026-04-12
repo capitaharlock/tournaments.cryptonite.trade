@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, Show } from "solid-js";
+import { createSignal, onCleanup, Show, onMount } from "solid-js";
 
 interface Props {
   targetDate: string;
@@ -20,8 +20,15 @@ export default function FlipClock(props: Props) {
   };
 
   const [time, setTime] = createSignal(calcRemaining());
-  const interval = setInterval(() => setTime(calcRemaining()), 1000);
-  onCleanup(() => clearInterval(interval));
+  const [mounted, setMounted] = createSignal(false);
+  let intervalId: ReturnType<typeof setInterval>;
+
+  onMount(() => {
+    setMounted(true);
+    setTime(calcRemaining()); // Recalc on client
+    intervalId = setInterval(() => setTime(calcRemaining()), 1000);
+  });
+  onCleanup(() => clearInterval(intervalId));
 
   const isLastHour = () => time().total > 0 && time().total < 3600000;
   const sz = () => props.size || "md";
