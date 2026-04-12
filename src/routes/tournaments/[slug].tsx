@@ -256,7 +256,7 @@ function DetailHero(props: { tournament: Tournament }) {
                     <span class={`text-lg font-black ${i === 0 ? "text-yellow-300" : "text-white"}`}>
                       {p.type === "cash" ? `$${p.value}` : (p.label || p.type).replace("Free ", "").replace(/\$\d+K /g, "")}
                     </span>
-                    <span class={`text-xs font-bold ${i === 0 ? "text-yellow-300/60" : "text-white/40"}`}>
+                    <span class={`text-sm font-bold ${i === 0 ? "text-yellow-300/60" : "text-white/40"}`}>
                       x{p.rank_to - p.rank_from + 1}
                     </span>
                   </div>
