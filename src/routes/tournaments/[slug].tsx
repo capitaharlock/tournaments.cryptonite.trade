@@ -148,9 +148,13 @@ export default function TournamentDetail() {
 
                   {/* Prize breakdown — position by position */}
                   <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50">
-                    <div class="px-4 py-3 border-b border-[#1a1a1a] flex items-center justify-between">
+                    <div class={`px-4 py-3 flex items-center justify-between ${
+                      t().name.includes("Sprint") ? "bg-gradient-to-r from-green-600/30 to-emerald-500/10" :
+                      t().name.includes("Classic") ? "bg-gradient-to-r from-blue-600/30 to-indigo-500/10" :
+                      "bg-gradient-to-r from-orange-600/30 to-amber-500/10"
+                    }`}>
                       <h3 class="text-sm font-bold text-white">Prize Breakdown</h3>
-                      <span class="text-[10px] text-gray-600">
+                      <span class="text-[10px] text-white/50">
                         {(t().prizes as any[]).reduce((s, p) => s + (p.rank_to - p.rank_from + 1), 0)} of {t().total_spots} win
                       </span>
                     </div>
