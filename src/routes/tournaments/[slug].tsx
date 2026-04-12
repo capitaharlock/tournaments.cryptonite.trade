@@ -168,7 +168,7 @@ export default function TournamentDetail() {
                               {p.rank_to - p.rank_from + 1} {p.rank_to - p.rank_from + 1 === 1 ? "winner" : "winners"}
                             </span>
                           </div>
-                          <p class={`text-sm font-bold ${i === 0 ? "text-yellow-300" : "text-white"}`}>
+                          <p class={`text-base font-bold ${i === 0 ? "text-yellow-300" : "text-white"}`}>
                             {p.label || p.type}
                           </p>
                         </div>
