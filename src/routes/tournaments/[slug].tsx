@@ -146,20 +146,31 @@ export default function TournamentDetail() {
                     </Show>
                   </div>
 
-                  {/* Prize breakdown */}
+                  {/* Prize breakdown — position by position */}
                   <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50">
-                    <div class="px-4 py-3 border-b border-[#1a1a1a]">
+                    <div class="px-4 py-3 border-b border-[#1a1a1a] flex items-center justify-between">
                       <h3 class="text-sm font-bold text-white">Prize Breakdown</h3>
+                      <span class="text-[10px] text-gray-600">
+                        {(t().prizes as any[]).reduce((s, p) => s + (p.rank_to - p.rank_from + 1), 0)} of {t().total_spots} win
+                      </span>
                     </div>
-                    <div class="p-3 space-y-1.5">
-                      {(t().prizes as any[]).map((p) => (
-                        <div class="flex items-center justify-between py-2 px-3 bg-[#0a0a0a] rounded-lg">
-                          <div class="flex items-center gap-2">
-                            <span class="text-yellow-400 font-mono text-xs font-bold">
-                              x{p.rank_to - p.rank_from + 1}
+                    <div class="p-3 space-y-1">
+                      {(t().prizes as any[]).map((p, i) => (
+                        <div class={`rounded-lg px-3 py-2.5 ${i === 0 ? "bg-yellow-400/5 border border-yellow-400/15" : "bg-[#0a0a0a]"}`}>
+                          <div class="flex items-center justify-between mb-1">
+                            <span class={`text-xs font-bold ${i === 0 ? "text-yellow-400" : "text-gray-400"}`}>
+                              {p.rank_from === p.rank_to
+                                ? `${p.rank_from}${p.rank_from === 1 ? "st" : p.rank_from === 2 ? "nd" : p.rank_from === 3 ? "rd" : "th"} Place`
+                                : `${p.rank_from}${p.rank_from === 1 ? "st" : p.rank_from === 2 ? "nd" : p.rank_from === 3 ? "rd" : "th"} – ${p.rank_to}th Place`
+                              }
+                            </span>
+                            <span class="text-[10px] text-gray-600">
+                              {p.rank_to - p.rank_from + 1} {p.rank_to - p.rank_from + 1 === 1 ? "winner" : "winners"}
                             </span>
                           </div>
-                          <span class="text-sm text-white font-medium">{p.label || p.type}</span>
+                          <p class={`text-sm font-bold ${i === 0 ? "text-yellow-300" : "text-white"}`}>
+                            {p.label || p.type}
+                          </p>
                         </div>
                       ))}
                     </div>
