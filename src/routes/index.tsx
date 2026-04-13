@@ -314,19 +314,13 @@ function PrizeVaultBox() {
   const totalValue = 10000;
 
   return (
-    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50">
-      <div class="px-5 py-3 border-b border-[#1a1a1a] bg-gradient-to-r from-yellow-600/20 to-orange-500/5 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <svg class="w-4 h-4 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-          <h2 class="text-sm font-bold text-white">Prize Vault</h2>
-        </div>
-        <span class="text-[10px] text-yellow-400 font-medium">Guaranteed • Next payout</span>
-      </div>
-
+    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full">
       <div class="p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">Prize Vault</h2>
+          <span class="text-[10px] text-yellow-400 font-medium">Guaranteed • Next payout</span>
+        </div>
+
         {/* Big total */}
         <div class="text-center mb-5">
           <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total value in upcoming tournaments</p>
@@ -445,14 +439,9 @@ function RecentResultsBox(props: { finished: Tournament[] }) {
   ];
 
   return (
-    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50">
-      <div class="px-4 py-3 border-b border-[#1a1a1a] bg-gradient-to-r from-blue-600/20 to-cyan-500/5 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <svg class="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-          </svg>
-          <h2 class="text-sm font-bold text-white">Recent Results</h2>
-        </div>
+    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full">
+      <div class="flex items-center justify-between px-5 pt-5 pb-3">
+        <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">Recent Results</h2>
         <span class="text-[10px] text-gray-600">Last {Math.min(props.finished.length, 10)}</span>
       </div>
 
@@ -528,11 +517,9 @@ function RecentResultsBox(props: { finished: Tournament[] }) {
 
 function StatsCardBox() {
   return (
-    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full">
-      <div class="px-4 py-3 border-b border-[#1a1a1a] bg-gradient-to-r from-cyan-600/20 to-blue-500/5">
-        <h2 class="text-sm font-bold text-white">Stats</h2>
-      </div>
-      <div class="p-4 space-y-3">
+    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full p-5">
+      <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-4">Stats</h2>
+      <div class="space-y-3">
         <StatRow icon="trophy" value="47" label="Tournaments completed" color="text-yellow-400" />
         <StatRow icon="users" value="1,240" label="Total participants" color="text-blue-400" />
         <StatRow icon="award" value="183" label="Winners crowned" color="text-purple-400" />
@@ -572,14 +559,12 @@ function HallOfFameMiniBox() {
   const top = HALL_OF_FAME.slice(0, 5);
 
   return (
-    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full">
-      <div class="px-4 py-3 border-b border-[#1a1a1a] bg-gradient-to-r from-purple-600/20 to-pink-500/5">
-        <h2 class="text-sm font-bold text-white">Hall of Fame</h2>
-      </div>
-      <div class="p-2">
+    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full p-5">
+      <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-3">Hall of Fame</h2>
+      <div class="space-y-1">
         <For each={top}>
           {(entry, i) => (
-            <div class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white/[0.03] transition">
+            <div class="flex items-center gap-2 py-1.5 rounded hover:bg-white/[0.03] transition">
               <span class={`w-5 text-center text-[11px] font-bold ${
                 i() === 0 ? "text-yellow-400" :
                 i() === 1 ? "text-gray-300" :
