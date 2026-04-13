@@ -214,7 +214,7 @@ function ScheduleCard(props: { tournament: Tournament }) {
               <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Entry Fee</p>
               <p class="text-3xl font-black text-white mb-3">${t().entry_fee}</p>
               <A
-                href={`/tournaments/${t().slug}#join`}
+                href={`/checkout/${t().slug}`}
                 class="block w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition text-sm text-center mb-2"
               >
                 Buy Ticket
