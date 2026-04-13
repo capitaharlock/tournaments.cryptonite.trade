@@ -148,11 +148,7 @@ export default function TournamentDetail() {
 
                   {/* Prize breakdown — position by position */}
                   <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50">
-                    <div class={`px-4 py-3 flex items-center justify-between ${
-                      t().name.includes("Sprint") ? "bg-gradient-to-r from-green-600/30 to-emerald-500/10" :
-                      t().name.includes("Classic") ? "bg-gradient-to-r from-blue-600/30 to-indigo-500/10" :
-                      "bg-gradient-to-r from-orange-600/30 to-amber-500/10"
-                    }`}>
+                    <div class="px-4 py-3 flex items-center justify-between bg-gradient-to-r from-green-600/30 to-emerald-500/10">
                       <h3 class="text-sm font-bold text-white">Prize Breakdown</h3>
                       <span class="text-[10px] text-white/50">
                         {(t().prizes as any[]).reduce((s, p) => s + (p.rank_to - p.rank_from + 1), 0)} of {t().total_spots} win
@@ -224,12 +220,7 @@ function DetailHero(props: { tournament: Tournament; demoTarget?: string }) {
   const spotsPercent = () => Math.max((t().reserved_spots / t().total_spots) * 100, 3);
 
   // Always use tournament type color — even finished tournaments keep their identity
-  const bannerGradient = () =>
-    isSprint()
-      ? "from-green-600 via-emerald-500 to-teal-400"
-      : isClassic()
-      ? "from-blue-600 via-indigo-500 to-purple-400"
-      : "from-orange-600 via-amber-500 to-yellow-400";
+  const bannerGradient = () => "from-green-600 via-emerald-500 to-teal-400";
 
 
   return (

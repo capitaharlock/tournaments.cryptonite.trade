@@ -26,11 +26,7 @@ export default function TournamentHero(props: Props) {
       {/* ═══ TOP BANNER — colored strip with gradient ═══ */}
       <div class={`relative h-12 overflow-hidden ${
         isLive()
-          ? isSprint()
-            ? "bg-gradient-to-r from-green-600 via-emerald-500 to-teal-500"
-            : isClassic()
-            ? "bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-500"
-            : "bg-gradient-to-r from-orange-600 via-amber-500 to-yellow-500"
+          ? "bg-gradient-to-r from-green-600 via-emerald-500 to-teal-500"
           : "bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700"
       }`}>
         {/* Diagonal stripe pattern */}
@@ -72,11 +68,7 @@ export default function TournamentHero(props: Props) {
       <div class="relative">
         {/* Subtle glow from banner */}
         <div class={`absolute top-0 left-0 right-0 h-16 opacity-20 ${
-          isLive()
-            ? isSprint() ? "bg-gradient-to-b from-green-500 to-transparent"
-              : isClassic() ? "bg-gradient-to-b from-blue-500 to-transparent"
-              : "bg-gradient-to-b from-orange-500 to-transparent"
-            : "bg-gradient-to-b from-gray-500 to-transparent"
+          isLive() ? "bg-gradient-to-b from-green-500 to-transparent" : "bg-gradient-to-b from-gray-500 to-transparent"
         }`} />
 
         <div class="relative p-4">
