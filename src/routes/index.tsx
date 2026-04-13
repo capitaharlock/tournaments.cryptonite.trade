@@ -110,7 +110,7 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
   });
 
   return (
-    <div class="bg-black rounded-xl flex flex-col overflow-hidden shadow-xl shadow-black/50">
+    <div class="bg-black border border-[#222] rounded-xl flex flex-col overflow-hidden shadow-xl shadow-black/50">
       {/* Hero — visual tournament identity */}
       <TournamentHero tournament={t()} />
 
@@ -228,7 +228,7 @@ function AgendaRow(props: { tournament: Tournament; isLive?: boolean; isRegister
 
 function EmptyPanel() {
   return (
-    <div class="bg-black rounded-xl flex items-center justify-center h-full min-h-[300px] shadow-lg shadow-black/30">
+    <div class="bg-black border border-[#222] rounded-xl flex items-center justify-center h-full min-h-[300px] shadow-lg shadow-black/30">
       <div class="text-center">
         <p class="text-gray-600 text-sm mb-2">No active tournaments</p>
         <A href="/schedule" class="text-xs text-green-500 hover:text-green-400">View schedule →</A>
@@ -258,7 +258,7 @@ function UpcomingBox(props: { rest: Tournament[]; registering: Tournament[]; sch
   const totalScheduled = () => props.rest.length + props.registering.length + props.scheduled.length;
 
   return (
-    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50 flex flex-col">
+    <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50 flex flex-col">
       {/* Header */}
       <div class="px-4 py-3 border-b border-[#1a1a1a] bg-gradient-to-r from-green-600/20 to-emerald-500/5 flex items-center justify-between">
         <div class="flex items-center gap-2">
@@ -314,7 +314,7 @@ function PrizeVaultBox() {
   const totalValue = 10000;
 
   return (
-    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full">
+    <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full">
       <div class="p-5">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">Prize Vault</h2>
@@ -383,7 +383,7 @@ const HALL_OF_FAME = [
 
 function HallOfFameBox() {
   return (
-    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50">
+    <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50">
       <div class="px-4 py-3 border-b border-[#1a1a1a] bg-gradient-to-r from-purple-600/20 to-pink-500/5 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <svg class="w-4 h-4 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -439,7 +439,7 @@ function RecentResultsBox(props: { finished: Tournament[] }) {
   ];
 
   return (
-    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full">
+    <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full">
       <div class="flex items-center justify-between px-5 pt-5 pb-3">
         <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">Recent Results</h2>
         <span class="text-[10px] text-gray-600">Last {Math.min(props.finished.length, 10)}</span>
@@ -517,7 +517,7 @@ function RecentResultsBox(props: { finished: Tournament[] }) {
 
 function StatsCardBox() {
   return (
-    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full p-5">
+    <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full p-5">
       <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-4">Stats</h2>
       <div class="space-y-3">
         <StatRow icon="trophy" value="47" label="Tournaments completed" color="text-yellow-400" />
@@ -559,7 +559,7 @@ function HallOfFameMiniBox() {
   const top = HALL_OF_FAME.slice(0, 5);
 
   return (
-    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full p-5">
+    <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full p-5">
       <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-3">Hall of Fame</h2>
       <div class="space-y-1">
         <For each={top}>
