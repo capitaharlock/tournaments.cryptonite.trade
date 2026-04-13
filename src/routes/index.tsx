@@ -31,48 +31,31 @@ export default function Home() {
       <Header />
 
       <div class="min-h-screen bg-[#1a1a1a]">
-        <div class="flex flex-col lg:flex-row min-h-[calc(100vh-48px)] gap-4 p-4">
+        <div class="flex flex-col lg:flex-row gap-4 p-4 items-start">
 
-          {/* LEFT (42%) */}
-          <div class="lg:w-[42%] flex-shrink-0">
+          {/* LEFT COLUMN (42%) — Primary tournament + Prize Vault */}
+          <div class="lg:w-[42%] flex-shrink-0 flex flex-col gap-4">
             <Show when={primary()} fallback={<EmptyPanel />}>
               {(t) => <TournamentPanel tournament={t()} maxRanks={10} />}
             </Show>
+            <PrizeVaultBox />
           </div>
 
-          {/* MIDDLE (30%) */}
-          <div class="lg:w-[30%] flex-shrink-0">
+          {/* MIDDLE COLUMN (30%) — Secondary tournament + Hall of Fame */}
+          <div class="lg:w-[30%] flex-shrink-0 flex flex-col gap-4">
             <Show when={secondary()} fallback={<EmptyPanel />}>
               {(t) => <TournamentPanel tournament={t()} maxRanks={10} />}
             </Show>
+            <HallOfFameBox />
           </div>
 
-          {/* RIGHT (28%) */}
+          {/* RIGHT COLUMN (28%) — Upcoming + Recent Results */}
           <div class="lg:flex-1 flex flex-col gap-4">
             <UpcomingBox
               rest={rest()}
               registering={(registering() || []).filter(r => !allLive().slice(0, 2).some(l => l.id === r.id))}
               scheduled={scheduled() || []}
             />
-          </div>
-        </div>
-
-        {/* ═══════════════════════════════════════════════════════════
-            SECOND ROW — fills the bottom space
-        ═══════════════════════════════════════════════════════════ */}
-        <div class="flex flex-col lg:flex-row gap-4 px-4 pb-4">
-          {/* LEFT: Prize Vault (big box) */}
-          <div class="lg:w-[42%]">
-            <PrizeVaultBox />
-          </div>
-
-          {/* MIDDLE: Hall of Fame */}
-          <div class="lg:w-[30%]">
-            <HallOfFameBox />
-          </div>
-
-          {/* RIGHT: Recent Results */}
-          <div class="lg:flex-1">
             <RecentResultsBox finished={finished() || []} />
           </div>
         </div>
