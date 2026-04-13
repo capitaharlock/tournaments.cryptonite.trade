@@ -31,32 +31,62 @@ export default function Home() {
       <Header />
 
       <div class="min-h-screen bg-[#1a1a1a]">
+        {/* ═══════════════════════════════════════════════════════════
+            TOP SECTION — Live tournaments (3 columns)
+        ═══════════════════════════════════════════════════════════ */}
         <div class="flex flex-col lg:flex-row gap-4 p-4 items-start">
-
-          {/* LEFT COLUMN (42%) — Primary tournament + Prize Vault */}
-          <div class="lg:w-[42%] flex-shrink-0 flex flex-col gap-4">
+          <div class="lg:w-[42%] flex-shrink-0">
             <Show when={primary()} fallback={<EmptyPanel />}>
               {(t) => <TournamentPanel tournament={t()} maxRanks={10} />}
             </Show>
-            <PrizeVaultBox />
           </div>
-
-          {/* MIDDLE COLUMN (30%) — Secondary tournament + Hall of Fame */}
-          <div class="lg:w-[30%] flex-shrink-0 flex flex-col gap-4">
+          <div class="lg:w-[30%] flex-shrink-0">
             <Show when={secondary()} fallback={<EmptyPanel />}>
               {(t) => <TournamentPanel tournament={t()} maxRanks={10} />}
             </Show>
-            <HallOfFameBox />
           </div>
-
-          {/* RIGHT COLUMN (28%) — Upcoming + Recent Results */}
-          <div class="lg:flex-1 flex flex-col gap-4">
+          <div class="lg:flex-1">
             <UpcomingBox
               rest={rest()}
               registering={(registering() || []).filter(r => !allLive().slice(0, 2).some(l => l.id === r.id))}
               scheduled={scheduled() || []}
             />
-            <RecentResultsBox finished={finished() || []} />
+          </div>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════
+            MIDDLE SECTION — Stats / showcase (different bg)
+            Layout: small | wide | small | small
+        ═══════════════════════════════════════════════════════════ */}
+        <div class="bg-gradient-to-b from-[#0d0d0d] via-[#0a0a0a] to-[#0d0d0d] border-y border-[#1f1f1f] py-8">
+          <div class="px-4">
+            <div class="text-center mb-6">
+              <p class="text-[10px] text-green-500 uppercase tracking-[0.2em] font-bold mb-1">Cryptonite Tournaments</p>
+              <h2 class="text-2xl font-black text-white">Compete. Trade. Win.</h2>
+              <p class="text-sm text-gray-500 mt-1">Real prizes. Real traders. Verified payouts.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+              {/* Box 1: small — Total Stats */}
+              <div class="lg:col-span-3">
+                <StatsCardBox />
+              </div>
+
+              {/* Box 2: WIDE — Prize Vault (the star) */}
+              <div class="lg:col-span-5">
+                <PrizeVaultBox />
+              </div>
+
+              {/* Box 3: small — Hall of Fame */}
+              <div class="lg:col-span-2">
+                <HallOfFameMiniBox />
+              </div>
+
+              {/* Box 4: small — Recent Results */}
+              <div class="lg:col-span-2">
+                <RecentResultsBox finished={finished() || []} />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -487,6 +517,82 @@ function RecentResultsBox(props: { finished: Tournament[] }) {
             }}
           </For>
         </Show>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATS CARD — quick numbers for trust/social proof
+// ═══════════════════════════════════════════════════════════════════════════
+
+function StatsCardBox() {
+  return (
+    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full">
+      <div class="px-4 py-3 border-b border-[#1a1a1a] bg-gradient-to-r from-cyan-600/20 to-blue-500/5">
+        <h2 class="text-sm font-bold text-white">Stats</h2>
+      </div>
+      <div class="p-4 space-y-3">
+        <StatRow icon="trophy" value="47" label="Tournaments completed" color="text-yellow-400" />
+        <StatRow icon="users" value="1,240" label="Total participants" color="text-blue-400" />
+        <StatRow icon="award" value="183" label="Winners crowned" color="text-purple-400" />
+        <StatRow icon="globe" value="32" label="Countries" color="text-green-400" />
+      </div>
+    </div>
+  );
+}
+
+function StatRow(props: { icon: string; value: string; label: string; color: string }) {
+  const icons: Record<string, string> = {
+    trophy: "M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7 M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7 M4 22h16 M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22 M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22 M18 2H6v7a6 6 0 0 0 12 0V2Z",
+    users: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75",
+    award: "M12 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M8.21 13.89L7 23l5-3 5 3-1.21-9.12",
+    globe: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M2 12h20 M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z",
+  };
+  return (
+    <div class="flex items-center gap-3">
+      <div class={`w-9 h-9 rounded-lg bg-[#0a0a0a] border border-gray-800/60 flex items-center justify-center flex-shrink-0`}>
+        <svg class={`w-4 h-4 ${props.color}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d={icons[props.icon]} />
+        </svg>
+      </div>
+      <div class="flex-1">
+        <p class={`text-lg font-black ${props.color} leading-none`}>{props.value}</p>
+        <p class="text-[10px] text-gray-500 mt-0.5">{props.label}</p>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HALL OF FAME MINI — compact version for the showcase row
+// ═══════════════════════════════════════════════════════════════════════════
+
+function HallOfFameMiniBox() {
+  const top = HALL_OF_FAME.slice(0, 5);
+
+  return (
+    <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full">
+      <div class="px-4 py-3 border-b border-[#1a1a1a] bg-gradient-to-r from-purple-600/20 to-pink-500/5">
+        <h2 class="text-sm font-bold text-white">Hall of Fame</h2>
+      </div>
+      <div class="p-2">
+        <For each={top}>
+          {(entry, i) => (
+            <div class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white/[0.03] transition">
+              <span class={`w-5 text-center text-[11px] font-bold ${
+                i() === 0 ? "text-yellow-400" :
+                i() === 1 ? "text-gray-300" :
+                i() === 2 ? "text-orange-400" :
+                "text-gray-600"
+              }`}>
+                {i() + 1}
+              </span>
+              <span class="flex-1 text-xs text-gray-300 truncate">{entry.nickname}</span>
+              <span class="text-[10px] text-green-400 font-bold">{entry.wins}w</span>
+            </div>
+          )}
+        </For>
       </div>
     </div>
   );
