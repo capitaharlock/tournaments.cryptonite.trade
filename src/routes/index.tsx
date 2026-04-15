@@ -9,6 +9,7 @@ import FlipClock from "../components/tournament/FlipClock";
 import MiniRanking from "../components/tournament/MiniRanking";
 import TournamentProgress from "../components/tournament/TournamentProgress";
 import TournamentHero from "../components/tournament/TournamentHero";
+import { getStatusStyle } from "../lib/statusStyles";
 
 export default function Home() {
   const [active] = createResource(() => fetchTournaments("active"));
@@ -16,14 +17,67 @@ export default function Home() {
   const [scheduled] = createResource(() => fetchTournaments("scheduled"));
   const [finished] = createResource(() => fetchTournaments("finished"));
 
-  const allLive = createMemo(() => {
-    const all = [...(active() || []), ...(registering() || [])];
-    return all.sort((a, b) => new Date(a.ends_at).getTime() - new Date(b.ends_at).getTime());
+  // ═══════════════════════════════════════════════════════════════════════
+  // STATE MACHINE for home slot selection
+  //
+  // Priority 1 — current action: active + recently_finished (<24h)
+  //   sorted by ends_at ASC → leftmost ends first
+  // Priority 2 — upcoming: registration + scheduled
+  //   sorted by starts_at ASC, tiebreak ends_at ASC → soonest first
+  //
+  // featured[0] = primary (left, larger)
+  // featured[1] = secondary (right)
+  // ═══════════════════════════════════════════════════════════════════════
+  const NOW_24H = 24 * 3600_000;
+  const NOW_7D = 7 * 86400_000;
+
+  const recentlyFinished = createMemo(() =>
+    (finished() || []).filter(
+      (t) => t.closed_at && Date.now() - new Date(t.closed_at).getTime() < NOW_24H
+    )
+  );
+
+  const archivedFinished = createMemo(() =>
+    (finished() || []).filter((t) => {
+      if (!t.closed_at) return false;
+      const age = Date.now() - new Date(t.closed_at).getTime();
+      return age >= NOW_24H && age < NOW_7D;
+    }).sort((a, b) => new Date(b.closed_at!).getTime() - new Date(a.closed_at!).getTime())
+  );
+
+  const currentAction = createMemo(() => {
+    const list = [...(active() || []), ...recentlyFinished()];
+    return list.sort((a, b) => new Date(a.ends_at).getTime() - new Date(b.ends_at).getTime());
   });
 
-  const primary = () => allLive()[0] || null;
-  const secondary = () => allLive()[1] || null;
-  const rest = () => allLive().slice(2);
+  const upcomingPool = createMemo(() => {
+    const list = [...(registering() || []), ...(scheduled() || [])];
+    return list.sort((a, b) => {
+      const s = new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime();
+      return s !== 0 ? s : new Date(a.ends_at).getTime() - new Date(b.ends_at).getTime();
+    });
+  });
+
+  // Featured = fill slots with current_action first, pad with upcoming
+  const featured = createMemo(() => {
+    const result = [...currentAction()];
+    const up = upcomingPool();
+    let i = 0;
+    while (result.length < 2 && i < up.length) {
+      result.push(up[i]);
+      i++;
+    }
+    return result;
+  });
+
+  const primary = () => featured()[0] || null;
+  const secondary = () => featured()[1] || null;
+
+  // Upcoming for the right column box — exclude ones already featured
+  const upcomingForBox = createMemo(() => {
+    const featuredIds = new Set(featured().map((t) => t.id));
+    return upcomingPool().filter((t) => !featuredIds.has(t.id));
+  });
 
   return (
     <>
@@ -31,25 +85,28 @@ export default function Home() {
       <Header />
 
       <div class="min-h-screen bg-[#1a1a1a]">
+        {/* ═══ Tournament Friday banner ═══ */}
+        <TournamentFridayBanner />
+
         {/* ═══════════════════════════════════════════════════════════
             TOP SECTION — Live tournaments (3 columns)
         ═══════════════════════════════════════════════════════════ */}
         <div class="flex flex-col lg:flex-row gap-4 p-4 items-start">
-          <div class="lg:w-[42%] flex-shrink-0">
+          <div class="w-full lg:w-[42%] lg:flex-shrink-0">
             <Show when={primary()} fallback={<EmptyPanel />}>
               {(t) => <TournamentPanel tournament={t()} maxRanks={10} />}
             </Show>
           </div>
-          <div class="lg:w-[30%] flex-shrink-0">
+          <div class="w-full lg:w-[30%] lg:flex-shrink-0">
             <Show when={secondary()} fallback={<EmptyPanel />}>
               {(t) => <TournamentPanel tournament={t()} maxRanks={10} />}
             </Show>
           </div>
-          <div class="lg:flex-1">
+          <div class="w-full lg:flex-1">
             <UpcomingBox
-              rest={rest()}
-              registering={(registering() || []).filter(r => !allLive().slice(0, 2).some(l => l.id === r.id))}
-              scheduled={scheduled() || []}
+              rest={[]}
+              registering={(registering() || []).filter(r => !featured().some(f => f.id === r.id))}
+              scheduled={(scheduled() || []).filter(s => !featured().some(f => f.id === s.id))}
             />
           </div>
         </div>
@@ -84,7 +141,7 @@ export default function Home() {
 
               {/* Box 4: small — Recent Results */}
               <div class="lg:col-span-2">
-                <RecentResultsBox finished={finished() || []} />
+                <RecentResultsBox finished={archivedFinished()} />
               </div>
             </div>
           </div>
@@ -100,9 +157,27 @@ export default function Home() {
 
 function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
   const t = () => props.tournament;
+  const style = () => getStatusStyle(t().status);
   const isReg = () => t().status === "registration";
+  const isLive = () => t().status === "active";
+  const isScheduled = () => t().status === "scheduled";
+  const isFinished = () => t().status === "finished";
+  const canJoin = () => isReg() && t().spots_available > 0;
 
-  const [apiRankings] = createResource(() => t().id, (id) => fetchRankings(id, props.maxRanks));
+  // Auto-refetch rankings every 30s for live tournaments
+  const [tick, setTick] = createSignal(0);
+  let rankInterval: ReturnType<typeof setInterval>;
+  onMount(() => {
+    if (t().status === "active") {
+      rankInterval = setInterval(() => setTick(v => v + 1), 30000);
+    }
+  });
+  onCleanup(() => clearInterval(rankInterval));
+
+  const [apiRankings] = createResource(
+    () => ({ id: t().id, tick: tick() }),
+    (args) => fetchRankings(args.id, props.maxRanks),
+  );
   const rankings = createMemo(() => {
     const real = apiRankings();
     if (real && real.length > 0) return real;
@@ -114,34 +189,96 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
       {/* Hero — visual tournament identity */}
       <TournamentHero tournament={t()} />
 
-      {/* Rankings */}
+      {/* Rankings (or empty state for pre-start tournaments) */}
       <div>
-        <MiniRanking
-          rankings={rankings()}
-          tournamentSlug={t().slug}
-          maxRows={props.maxRanks}
-          accountSize={Number(t().account_size)} prizes={t().prizes as any}
-        />
+        <Show
+          when={isLive() || isFinished()}
+          fallback={<PrestartEmptyState tournament={t()} />}
+        >
+          <MiniRanking
+            rankings={rankings()}
+            tournamentSlug={t().slug}
+            maxRows={props.maxRanks}
+            accountSize={Number(t().account_size)} prizes={t().prizes as any}
+          />
+        </Show>
       </div>
 
-      {/* Footer */}
-      <div class="flex items-center justify-between px-4 py-2.5 bg-[#0a0a0a] border-t border-white/[0.03]">
-        <A
-          href={`/tournaments/${t().slug}`}
-          class="text-[11px] text-gray-500 hover:text-gray-300 transition"
-        >
-          +{t().total_spots - props.maxRanks} more participants
-        </A>
-
-        <div class="flex items-center gap-2">
-          <Show when={isReg() && t().spots_available > 0}>
-            <A href={`/checkout/${t().slug}`} class="px-3 py-1 bg-green-600 hover:bg-green-500 text-white text-[10px] font-bold rounded transition">
-              Join ${t().entry_fee}
-            </A>
-          </Show>
-          <A href={`/tournaments/${t().slug}`} class="text-[11px] text-green-500 hover:text-green-400 font-medium transition">
-            View Full Tournament →
+      {/* ═══ FOOTER CTA — chromatically paired with header banner ═══ */}
+      <div class={`relative bg-gradient-to-r ${style().mutedGradient} border-t border-white/20`}>
+        {/* Top edge highlight — mirrors the banner's bottom fade */}
+        <div class="absolute top-0 left-0 right-0 h-px bg-white/30" />
+        {/* Diagonal stripe pattern to match header */}
+        <div
+          class="absolute inset-0 opacity-10 pointer-events-none"
+          style="background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.2) 10px, rgba(255,255,255,0.2) 20px);"
+        />
+        <div class="relative flex items-center gap-3 px-4 h-12">
+          {/* Left: participants badge (click → detail) */}
+          <A
+            href={`/tournaments/${t().slug}`}
+            class="flex items-center gap-2 text-[11px] text-gray-400 hover:text-white transition flex-shrink-0 group"
+          >
+            <div class="flex -space-x-1">
+              <div class="w-5 h-5 rounded-full bg-emerald-500/20 border-2 border-black" />
+              <div class="w-5 h-5 rounded-full bg-blue-500/20 border-2 border-black" />
+              <div class="w-5 h-5 rounded-full bg-purple-500/20 border-2 border-black" />
+            </div>
+            <span class="font-bold">
+              +{t().total_spots - props.maxRanks}<span class="hidden sm:inline"> traders</span>
+            </span>
           </A>
+
+          {/* Right: primary CTA */}
+          <div class="flex-1 flex justify-end">
+            <Show when={canJoin()}>
+              <A
+                href={`/checkout/${t().slug}`}
+                class={`group flex items-center gap-1.5 px-4 h-8 ${style().cta} font-black rounded-md transition text-[12px] shadow-md ${style().glow} hover:scale-[1.02]`}
+              >
+                <span>JOIN — ${t().entry_fee}</span>
+                <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                  <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                </svg>
+              </A>
+            </Show>
+            <Show when={isLive()}>
+              <A
+                href={`/tournaments/${t().slug}`}
+                class={`group flex items-center gap-1.5 px-4 h-8 ${style().cta} font-black rounded-md transition text-[12px] shadow-md ${style().glow} hover:scale-[1.02]`}
+              >
+                <span class="relative flex h-1.5 w-1.5">
+                  <span class="animate-ping absolute h-full w-full rounded-full bg-white opacity-75" />
+                  <span class="relative rounded-full h-1.5 w-1.5 bg-white" />
+                </span>
+                <span>WATCH LIVE</span>
+                <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                  <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                </svg>
+              </A>
+            </Show>
+            <Show when={isReg() && !canJoin()}>
+              <div class="px-4 h-8 flex items-center bg-gray-800 text-gray-500 font-black rounded-md text-[12px]">
+                TOURNAMENT FULL
+              </div>
+            </Show>
+            <Show when={isScheduled()}>
+              <A
+                href={`/tournaments/${t().slug}`}
+                class={`group flex items-center gap-1.5 px-4 h-8 ${style().cta} font-black rounded-md transition text-[12px] shadow-md ${style().glow} hover:scale-[1.02]`}
+              >
+                <span>🔔 NOTIFY ME</span>
+              </A>
+            </Show>
+            <Show when={isFinished()}>
+              <A
+                href={`/tournaments/${t().slug}`}
+                class={`group flex items-center gap-1.5 px-4 h-8 ${style().cta} font-black rounded-md transition text-[12px] shadow-md ${style().glow} hover:scale-[1.02]`}
+              >
+                <span>VIEW RESULTS →</span>
+              </A>
+            </Show>
+          </div>
         </div>
       </div>
     </div>
@@ -255,7 +392,21 @@ function UpcomingBox(props: { rest: Tournament[]; registering: Tournament[]; sch
   });
   onCleanup(() => clearInterval(interval));
 
-  const totalScheduled = () => props.rest.length + props.registering.length + props.scheduled.length;
+  // Merge + sort by soonest first (by next relevant time: starts_at for scheduled, ends_at for live)
+  const merged = createMemo(() => {
+    const withKind: Array<{ t: Tournament; kind: "live" | "reg" | "sched" }> = [
+      ...props.rest.map((t) => ({ t, kind: "live" as const })),
+      ...props.registering.map((t) => ({ t, kind: "reg" as const })),
+      ...props.scheduled.map((t) => ({ t, kind: "sched" as const })),
+    ];
+    // Sort by starts_at ascending (soonest first)
+    withKind.sort((a, b) => new Date(a.t.starts_at).getTime() - new Date(b.t.starts_at).getTime());
+    return withKind;
+  });
+
+  const totalScheduled = () => merged().length;
+  const visible = () => merged().slice(0, 5);
+  const hidden = () => Math.max(0, merged().length - 5);
 
   return (
     <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50 flex flex-col">
@@ -273,21 +424,36 @@ function UpcomingBox(props: { rest: Tournament[]; registering: Tournament[]; sch
         </span>
       </div>
 
-      {/* Rows */}
+      {/* Rows — limited to 5 closest, sorted soonest first */}
       <div>
-        <For each={props.rest}>
-          {(t) => <AgendaRow tournament={t} isLive />}
-        </For>
-        <For each={props.registering}>
-          {(t) => <AgendaRow tournament={t} isRegistering />}
-        </For>
-        <For each={props.scheduled}>
-          {(t) => <AgendaRow tournament={t} />}
+        <For each={visible()}>
+          {(item) => (
+            <AgendaRow
+              tournament={item.t}
+              isLive={item.kind === "live"}
+              isRegistering={item.kind === "reg"}
+            />
+          )}
         </For>
         <Show when={totalScheduled() === 0}>
           <div class="text-center py-10 text-gray-700 text-xs">No upcoming tournaments</div>
         </Show>
       </div>
+
+      {/* "View full schedule" CTA if there are more */}
+      <Show when={hidden() > 0}>
+        <A
+          href="/schedule"
+          class="block px-4 py-3 bg-gradient-to-r from-green-600/10 to-emerald-500/5 border-t border-[#1a1a1a] hover:from-green-600/20 hover:to-emerald-500/10 transition text-center group"
+        >
+          <span class="text-xs text-green-400 font-bold">
+            +{hidden()} more tournaments →
+          </span>
+          <span class="block text-[10px] text-gray-500 mt-0.5">
+            View full schedule
+          </span>
+        </A>
+      </Show>
 
       {/* Footer — live UTC clock + refresh tag */}
       <div class="px-4 py-2.5 border-t border-[#1a1a1a] bg-[#0a0a0a] flex items-center justify-between">
@@ -579,6 +745,147 @@ function HallOfFameMiniBox() {
           )}
         </For>
       </div>
+    </div>
+  );
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TOURNAMENT FRIDAY BANNER — Phase 10d branding
+// Shows a prominent strip on Fridays (and the 24h leading up) to highlight
+// that new Sprint + Classic tournaments kick off at 22:00 UTC.
+// ═══════════════════════════════════════════════════════════════════════════
+
+function TournamentFridayBanner() {
+  const [now, setNow] = createSignal(new Date());
+  let interval: any;
+  onMount(() => {
+    interval = setInterval(() => setNow(new Date()), 1000);
+  });
+  onCleanup(() => clearInterval(interval));
+
+  // Compute next Friday 22:00 UTC
+  const nextFridayKickoff = createMemo(() => {
+    const n = now();
+    const utcDay = n.getUTCDay(); // 0=Sun..6=Sat
+    const daysUntilFriday = (5 - utcDay + 7) % 7;
+    const target = new Date(Date.UTC(
+      n.getUTCFullYear(),
+      n.getUTCMonth(),
+      n.getUTCDate() + daysUntilFriday,
+      22, 0, 0, 0
+    ));
+    if (target.getTime() < n.getTime()) {
+      target.setUTCDate(target.getUTCDate() + 7);
+    }
+    return target;
+  });
+
+  const diff = createMemo(() => nextFridayKickoff().getTime() - now().getTime());
+  const isThisWeek = () => diff() < 7 * 86400000;
+  const isImminentDay = () => diff() < 28 * 3600000; // within 28h
+  const isLive = () => {
+    // Friday 22:00 UTC to Sunday 22:00 UTC = "kickoff window"
+    const elapsed = now().getTime() - nextFridayKickoff().getTime();
+    return elapsed < 0 && elapsed > -2 * 86400000;
+  };
+
+  const remaining = createMemo(() => {
+    const ms = diff();
+    if (ms < 0) return null;
+    return {
+      d: Math.floor(ms / 86400000),
+      h: Math.floor((ms % 86400000) / 3600000),
+      m: Math.floor((ms % 3600000) / 60000),
+      s: Math.floor((ms % 60000) / 1000),
+    };
+  });
+
+  return (
+    <Show when={isThisWeek()}>
+      <div class={`relative overflow-hidden border-b border-[#1f1f1f] ${
+        isImminentDay()
+          ? "bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-400/30"
+          : "bg-gradient-to-r from-green-600/15 via-emerald-500/10 to-teal-400/15"
+      }`}>
+        <div class="absolute inset-0 opacity-[0.05]" style="background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 20px);" />
+        <div class="relative max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
+          <div class="flex items-center gap-3">
+            <span class="relative flex h-2.5 w-2.5">
+              <span class="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span class="relative rounded-full h-2.5 w-2.5 bg-green-500" />
+            </span>
+            <div>
+              <p class="text-[10px] text-green-400 font-black uppercase tracking-[0.15em]">
+                Tournament Friday
+              </p>
+              <p class="text-sm text-white font-bold">
+                Sprint + Classic kick off every Friday at 22:00 UTC
+              </p>
+            </div>
+          </div>
+          <Show when={remaining()}>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="text-gray-400">Next kickoff in</span>
+              <div class="flex gap-1 font-mono font-bold">
+                <span class="bg-black/40 border border-green-500/30 text-green-300 px-2 py-1 rounded">
+                  {remaining()!.d}d
+                </span>
+                <span class="bg-black/40 border border-green-500/30 text-green-300 px-2 py-1 rounded">
+                  {String(remaining()!.h).padStart(2, "0")}h
+                </span>
+                <span class="bg-black/40 border border-green-500/30 text-green-300 px-2 py-1 rounded">
+                  {String(remaining()!.m).padStart(2, "0")}m
+                </span>
+                <span class="bg-black/40 border border-green-500/30 text-green-300 px-2 py-1 rounded">
+                  {String(remaining()!.s).padStart(2, "0")}s
+                </span>
+              </div>
+              <A href="/schedule" class="ml-2 px-3 py-1 bg-green-600 hover:bg-green-500 text-white font-bold text-[11px] rounded transition">
+                Get Your Spot →
+              </A>
+            </div>
+          </Show>
+        </div>
+      </div>
+    </Show>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRESTART EMPTY STATE — for tournaments not yet live (registration/scheduled)
+// Shows a clean "waiting to start" visual instead of mock rankings.
+// ═══════════════════════════════════════════════════════════════════════════
+
+function PrestartEmptyState(props: { tournament: Tournament }) {
+  const t = () => props.tournament;
+  const style = () => getStatusStyle(t().status);
+  const isReg = () => t().status === "registration";
+
+  return (
+    <div class="px-4 py-8 flex flex-col items-center justify-center text-center">
+      <div class={`w-12 h-12 rounded-full bg-gradient-to-br ${style().softGradient} border ${style().ring} flex items-center justify-center mb-3`}>
+        <svg class={`w-5 h-5 ${style().accent}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      </div>
+      <p class={`text-sm font-bold ${style().accent} mb-1`}>
+        {isReg() ? "Registration open — no participants yet" : "Coming soon — registration not yet open"}
+      </p>
+      <p class="text-xs text-gray-500 mb-4 max-w-xs">
+        {isReg()
+          ? `Be one of the first to claim a spot. $${t().entry_fee} gets you a $${Number(t().account_size).toLocaleString()} account to compete.`
+          : `Registration opens soon. Rankings appear once the tournament starts.`}
+      </p>
+      <Show when={isReg() && t().spots_available > 0}>
+        <A
+          href={`/checkout/${t().slug}`}
+          class={`inline-flex items-center gap-1.5 px-5 py-2 ${style().cta} font-black rounded-lg transition text-sm shadow-md ${style().glow}`}
+        >
+          JOIN NOW — ${t().entry_fee} →
+        </A>
+      </Show>
     </div>
   );
 }
