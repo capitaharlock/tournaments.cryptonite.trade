@@ -27,10 +27,21 @@ export async function fetchTournament(slug: string): Promise<Tournament> {
   return get(`/v1/tournaments/${slug}`);
 }
 
+/**
+ * Fetch tournament rankings.
+ *
+ * @param live  When true, hits /rankings/live which queries Pulse memory in
+ *              real-time (no worker→DB lag). Recommended for active tournaments.
+ *              When false, reads the materialized tournament_rankings table.
+ */
 export async function fetchRankings(
   tournamentId: string,
   limit = 50,
-  offset = 0
+  offset = 0,
+  live = true
 ): Promise<RankingEntry[]> {
-  return get(`/v1/tournaments/${tournamentId}/rankings?limit=${limit}&offset=${offset}`);
+  const path = live
+    ? `/v1/tournaments/${tournamentId}/rankings/live?limit=${limit}`
+    : `/v1/tournaments/${tournamentId}/rankings?limit=${limit}&offset=${offset}`;
+  return get(path);
 }

@@ -70,8 +70,20 @@ export interface TournamentEntry {
   registered_at: string;
 }
 
+export interface LivePosition {
+  id: string;
+  symbol: string;
+  side: string;
+  quantity: number;
+  entry_price: number;
+  current_price: number;
+  unrealized_pnl: number;
+  opened_at: string;
+}
+
 export interface RankingEntry {
   rank: number;
+  rank_change_1h?: number | null;
   entry_id: string;
   nickname: string | null;
   profit: number;
@@ -82,6 +94,7 @@ export interface RankingEntry {
   max_drawdown_percent: number | null;
   projected_prize_amount: number | null;
   projected_prize_type: string | null;
+  positions?: LivePosition[];
 }
 
 export interface ApiResponse<T> {

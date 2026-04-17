@@ -103,8 +103,9 @@ export default function MiniRanking(props: Props) {
       <For each={rows()}>
         {(entry) => {
           const name = () => entry.nickname || "Anon";
-          const isPositive = () => entry.profit_percentage >= 0;
-          const equity = () => acctSize() + (acctSize() * entry.profit_percentage / 100);
+          const profitPct = () => Number(entry.profit_percentage) || 0;
+          const isPositive = () => profitPct() >= 0;
+          const equity = () => acctSize() + (acctSize() * profitPct() / 100);
           const prize = () => getPrize(entry.rank, props.prizes);
 
           return (
@@ -127,6 +128,16 @@ export default function MiniRanking(props: Props) {
                 #{entry.rank}
               </div>
 
+              {/* 1h rank change */}
+              <div class="w-5 text-center flex-shrink-0">
+                {(() => {
+                  const c = entry.rank_change_1h;
+                  if (c == null || c === 0) return <span class="text-gray-700 text-[9px]">—</span>;
+                  if (c > 0) return <span class="text-green-400 text-[9px] font-bold">▲{c}</span>;
+                  return <span class="text-red-400 text-[9px] font-bold">▼{Math.abs(c)}</span>;
+                })()}
+              </div>
+
               {/* Avatar */}
               <div class={`w-6 h-6 rounded-full border border-gray-700 flex items-center justify-center text-[10px] font-bold ${letterColor(name())} flex-shrink-0`}>
                 {name()[0].toUpperCase()}
@@ -139,7 +150,7 @@ export default function MiniRanking(props: Props) {
 
               {/* Profit % */}
               <span class={`w-16 text-right text-[12px] font-mono tabular-nums ${isPositive() ? "text-green-400" : "text-red-400"}`}>
-                {isPositive() ? "+" : ""}{entry.profit_percentage.toFixed(2)}%
+                {isPositive() ? "+" : ""}{profitPct().toFixed(2)}%
               </span>
 
               {/* Equity */}

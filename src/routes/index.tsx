@@ -33,16 +33,16 @@ export default function Home() {
 
   const recentlyFinished = createMemo(() =>
     (finished() || []).filter(
-      (t) => t.closed_at && Date.now() - new Date(t.closed_at).getTime() < NOW_24H
+      (t) => t.ends_at && Date.now() - new Date(t.ends_at).getTime() < NOW_24H
     )
   );
 
   const archivedFinished = createMemo(() =>
     (finished() || []).filter((t) => {
-      if (!t.closed_at) return false;
-      const age = Date.now() - new Date(t.closed_at).getTime();
+      if (!t.ends_at) return false;
+      const age = Date.now() - new Date(t.ends_at).getTime();
       return age >= NOW_24H && age < NOW_7D;
-    }).sort((a, b) => new Date(b.closed_at!).getTime() - new Date(a.closed_at!).getTime())
+    }).sort((a, b) => new Date(b.ends_at).getTime() - new Date(a.ends_at).getTime())
   );
 
   const currentAction = createMemo(() => {
@@ -164,23 +164,32 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
   const isFinished = () => t().status === "finished";
   const canJoin = () => isReg() && t().spots_available > 0;
 
-  // Auto-refetch rankings every 30s for live tournaments
-  const [tick, setTick] = createSignal(0);
-  let rankInterval: ReturnType<typeof setInterval>;
+  // ─── Live rankings via signal + manual poll (no flash on update) ────
+  // Plain signal instead of createResource — refetch on createResource
+  // enters "pending" state which causes <Show> blocks to flash.
+  // SolidJS' fine-grained reactivity diffs only the row data when we
+  // setApiRankings(); the table DOM remains intact between polls.
+  const [apiRankings, setApiRankings] = createSignal<any[]>([]);
+
+  const loadRankings = async () => {
+    try {
+      const data = await fetchRankings(t().id, props.maxRanks);
+      setApiRankings(data || []);
+    } catch (e) { /* silent */ }
+  };
+
+  let pollInterval: ReturnType<typeof setInterval>;
   onMount(() => {
+    loadRankings();
     if (t().status === "active") {
-      rankInterval = setInterval(() => setTick(v => v + 1), 30000);
+      pollInterval = setInterval(loadRankings, 5000);
     }
   });
-  onCleanup(() => clearInterval(rankInterval));
+  onCleanup(() => clearInterval(pollInterval));
 
-  const [apiRankings] = createResource(
-    () => ({ id: t().id, tick: tick() }),
-    (args) => fetchRankings(args.id, props.maxRanks),
-  );
   const rankings = createMemo(() => {
     const real = apiRankings();
-    if (real && real.length > 0) return real;
+    if (real.length > 0) return real;
     return generateMockRankings(props.maxRanks, t().name.includes("Sprint") ? 6 : 8);
   });
 
