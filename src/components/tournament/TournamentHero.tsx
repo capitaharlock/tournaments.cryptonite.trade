@@ -2,6 +2,7 @@ import { Show } from "solid-js";
 import type { Tournament } from "../../types/tournament";
 import FlipClock from "./FlipClock";
 import TournamentProgress from "./TournamentProgress";
+import { getStatusStyle } from "../../lib/statusStyles";
 
 interface Props {
   tournament: Tournament;
@@ -9,8 +10,10 @@ interface Props {
 
 export default function TournamentHero(props: Props) {
   const t = () => props.tournament;
+  const style = () => getStatusStyle(t().status);
   const isLive = () => t().status === "active";
   const isReg = () => t().status === "registration";
+  const isScheduled = () => t().status === "scheduled";
   const totalDays = () => Math.round((new Date(t().ends_at).getTime() - new Date(t().starts_at).getTime()) / 86400000);
   const cashPrize = () => {
     const p = (t().prizes as any[]).find(p => p.type === "cash");
@@ -24,31 +27,22 @@ export default function TournamentHero(props: Props) {
   return (
     <div class="relative overflow-hidden">
       {/* ═══ TOP BANNER — colored strip with gradient ═══ */}
-      <div class={`relative h-12 overflow-hidden ${
-        isLive()
-          ? "bg-gradient-to-r from-green-600 via-emerald-500 to-teal-500"
-          : "bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700"
-      }`}>
+      <div class={`relative h-12 overflow-hidden bg-gradient-to-r ${style().gradient}`}>
         {/* Diagonal stripe pattern */}
         <div class="absolute inset-0 opacity-10" style="background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px);" />
 
         {/* Banner content */}
         <div class="relative h-full flex items-center justify-between px-4">
           <div class="flex items-center gap-2">
-            <Show when={isLive()}>
-              <span class="flex items-center gap-1.5 text-[11px] font-bold text-white bg-black/20 px-2.5 py-0.5 rounded-full backdrop-blur-sm">
+            <span class="flex items-center gap-1.5 text-[11px] font-bold text-white bg-black/20 px-2.5 py-0.5 rounded-full backdrop-blur-sm">
+              <Show when={isLive()}>
                 <span class="relative flex h-2 w-2">
                   <span class="animate-ping absolute h-full w-full rounded-full bg-white opacity-75" />
                   <span class="relative rounded-full h-2 w-2 bg-white" />
                 </span>
-                LIVE
-              </span>
-            </Show>
-            <Show when={isReg()}>
-              <span class="text-[11px] font-bold text-white bg-black/20 px-2.5 py-0.5 rounded-full backdrop-blur-sm">
-                OPEN
-              </span>
-            </Show>
+              </Show>
+              {style().label}
+            </span>
             <span class="text-[11px] text-white/70 font-medium">
               {isSprint() ? "⚡ SPRINT" : isClassic() ? "🏆 CLASSIC" : "🏔️ MARATHON"} • {totalDays()} DAYS
             </span>
@@ -67,9 +61,7 @@ export default function TournamentHero(props: Props) {
       {/* ═══ BODY ═══ */}
       <div class="relative">
         {/* Subtle glow from banner */}
-        <div class={`absolute top-0 left-0 right-0 h-16 opacity-20 ${
-          isLive() ? "bg-gradient-to-b from-green-500 to-transparent" : "bg-gradient-to-b from-gray-500 to-transparent"
-        }`} />
+        <div class={`absolute top-0 left-0 right-0 h-16 opacity-20 bg-gradient-to-b ${style().gradient.split(" ")[0].replace("from-", "from-")} to-transparent`} />
 
         <div class="relative p-4">
           {/* Row 1: Trophy + Title + Clock */}
@@ -105,6 +97,9 @@ export default function TournamentHero(props: Props) {
             <Show when={isReg()}>
               <FlipClock targetDate={t().starts_at} label="STARTS" size="sm" />
             </Show>
+            <Show when={isScheduled()}>
+              <FlipClock targetDate={t().registration_opens_at} label="OPENS" size="sm" />
+            </Show>
           </div>
 
           {/* Row 2: Progress (live) or Spots bar (registration) */}
@@ -118,7 +113,7 @@ export default function TournamentHero(props: Props) {
                 <span class="text-gray-600">{t().spots_available} left</span>
               </div>
               <div class="h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-green-600 to-green-400 rounded-full transition-all" style={`width:${spotsPercent()}%`} />
+                <div class={`h-full bg-gradient-to-r ${style().gradient} rounded-full transition-all`} style={`width:${spotsPercent()}%`} />
               </div>
             </div>
           </Show>

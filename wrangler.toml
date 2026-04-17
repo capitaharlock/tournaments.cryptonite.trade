@@ -5,8 +5,10 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 VITE_API_URL = "https://rust-api-cryptonite.fly.dev"
+VITE_WORKER_WS_URL = "wss://cryptonite-tournament-worker.fly.dev"
 VITE_NODE_ENV = "production"
 
 [env.preview.vars]
 VITE_API_URL = "https://rust-api-cryptonite.fly.dev"
+VITE_WORKER_WS_URL = "wss://cryptonite-tournament-worker.fly.dev"
 VITE_NODE_ENV = "preview"

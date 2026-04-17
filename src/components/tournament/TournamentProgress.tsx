@@ -66,18 +66,20 @@ export default function TournamentProgress(props: Props) {
         </span>
       </div>
 
-      {/* Last day: hour progress bar with color gradient */}
-      {state().isLastDay && state().started && (
-        <div class={`relative h-1.5 rounded-full overflow-hidden ${
-          state().isLastHour ? "ring-1 ring-red-500/50 animate-pulse" : ""
-        }`}>
-          <div class="absolute inset-0 bg-gray-800 rounded-full" />
+      {/* Final-24h progress bar — always rendered (gray when not yet last day,
+          so both panels have matching height). Activates with color gradient
+          once we're in the last 24h. */}
+      <div class={`relative h-1.5 rounded-full overflow-hidden ${
+        state().isLastDay && state().isLastHour ? "ring-1 ring-red-500/50 animate-pulse" : ""
+      }`}>
+        <div class="absolute inset-0 bg-gray-800 rounded-full" />
+        {state().isLastDay && state().started ? (
           <div
             class="absolute inset-y-0 left-0 rounded-full transition-all duration-1000"
             style={`width: ${Math.min((state().hoursInDay / 24) * 100, 100)}%; background: linear-gradient(90deg, #22c55e, #eab308, #f97316, #ef4444);`}
           />
-        </div>
-      )}
+        ) : null}
+      </div>
     </div>
   );
 }
