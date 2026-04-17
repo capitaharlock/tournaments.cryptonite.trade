@@ -12,7 +12,7 @@ import { getSSOToken, setSSOToken } from "../../lib/sso";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:7002";
 
 type Step = "auth" | "method" | "payment" | "success" | "error";
-type PaymentMethod = "card" | "crypto" | "paypal";
+type PaymentMethod = "paypal" | "crypto";
 
 export default function Checkout() {
   const params = useParams<{ slug: string }>();
@@ -22,7 +22,7 @@ export default function Checkout() {
   const [password, setPassword] = createSignal("");
   const [nickname, setNickname] = createSignal("");
   const [step, setStep] = createSignal<Step>("auth");
-  const [paymentMethod, setPaymentMethod] = createSignal<PaymentMethod>("card");
+  const [paymentMethod, setPaymentMethod] = createSignal<PaymentMethod>("paypal");
   const [jwt, setJwt] = createSignal<string | null>(null);
   const [userName, setUserName] = createSignal<string | null>(null);
   const [error, setError] = createSignal<string | null>(null);
@@ -164,29 +164,179 @@ export default function Checkout() {
     }
   };
 
-  const handleEnter = async () => {
+  const [intentId, setIntentId] = createSignal<string | null>(null);
+  const [cryptoPayData, setCryptoPayData] = createSignal<any>(null);
+  const [paypalLoading, setPaypalLoading] = createSignal(false);
+
+  /** Start payment: create intent via API, then delegate to PayPal or crypto UI */
+  const handleStartPayment = async () => {
     if (!jwt() || !tournament()) return;
     setLoading(true);
     setError(null);
+
     try {
-      const res = await fetch(`${API_URL}/v1/tournaments/${tournament()!.id}/enter`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt()}` },
-        body: JSON.stringify({
-          nickname: nickname() || null,
-          voucher_code: voucherCode() || null,
-        }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message || "Failed to enter tournament");
-      setEntryResult(data.data);
-      setStep("success");
+      const t = tournament()!;
+      const body: any = {
+        payment_method: paymentMethod() === "paypal" ? "paypal" : "nowpayments",
+        nickname: nickname() || null,
+        voucher_code: voucherCode() || null,
+      };
+      // For crypto, pay_currency is set later when user picks token+network
+      // For PayPal, we create the intent now
+      if (paymentMethod() === "paypal") {
+        const res = await fetch(`${API_URL}/v1/tournaments/${t.id}/create-payment-intent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt()}` },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || "Failed to create payment");
+
+        const intent = data.data;
+        setIntentId(intent.intent_id);
+
+        if (intent.status === "completed") {
+          // Voucher covered 100% — already entered
+          setEntryResult({ trading_account_id: intent.trading_account_id });
+          setStep("success");
+          return;
+        }
+
+        // Load PayPal SDK and render buttons
+        setStep("payment");
+        setPaypalLoading(true);
+        await loadPayPalSdk();
+        renderPayPalButtons(intent.paypal_order_id, intent.intent_id, t.id);
+      } else {
+        // Crypto — go to token selection step
+        setStep("payment");
+      }
     } catch (err: any) {
-      setError(err.message || "Failed to enter tournament");
-      setStep("error");
+      setError(err.message || "Payment failed");
     } finally {
       setLoading(false);
     }
+  };
+
+  /** Create crypto payment intent after user picks token+network */
+  const handleCryptoCreate = async (payCurrency: string) => {
+    if (!jwt() || !tournament()) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const t = tournament()!;
+      const res = await fetch(`${API_URL}/v1/tournaments/${t.id}/create-payment-intent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt()}` },
+        body: JSON.stringify({
+          payment_method: "nowpayments",
+          nickname: nickname() || null,
+          voucher_code: voucherCode() || null,
+          pay_currency: payCurrency,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || "Failed to create crypto payment");
+
+      const intent = data.data;
+      setIntentId(intent.intent_id);
+
+      if (intent.status === "completed") {
+        setEntryResult({ trading_account_id: null });
+        setStep("success");
+        return;
+      }
+
+      setCryptoPayData({
+        paymentId: intent.nowpayments_payment_id,
+        payAddress: intent.nowpayments_pay_address,
+        payAmount: intent.nowpayments_pay_amount,
+        payCurrency: intent.nowpayments_pay_currency,
+      });
+    } catch (err: any) {
+      setError(err.message || "Crypto payment failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Poll crypto payment status */
+  const pollCryptoPayment = async () => {
+    if (!jwt() || !intentId() || !tournament()) return;
+    try {
+      const t = tournament()!;
+      const res = await fetch(`${API_URL}/v1/tournaments/${t.id}/confirm-payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt()}` },
+        body: JSON.stringify({
+          intent_id: intentId(),
+          nowpayments_payment_id: cryptoPayData()?.paymentId,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEntryResult(data.data);
+        setStep("success");
+        return true;
+      }
+    } catch { /* still waiting */ }
+    return false;
+  };
+
+  /** Load PayPal SDK script */
+  const loadPayPalSdk = (): Promise<void> => {
+    return new Promise((resolve) => {
+      if ((window as any).paypal) { resolve(); return; }
+      const clientId = "AbYyt9Z5BJqXMeKRRVayaZGQ4lRLDFMnU0SsD91GFG_rDK6Vo1WyjOXLXz9QYzCNnO_anwnXdSoVB34D";
+      const script = document.createElement("script");
+      script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&intent=capture`;
+      script.onload = () => resolve();
+      document.head.appendChild(script);
+    });
+  };
+
+  /** Render PayPal buttons into the container */
+  const renderPayPalButtons = (paypalOrderId: string, intentId: string, tournamentId: string) => {
+    setTimeout(() => {
+      const container = document.getElementById("paypal-button-container");
+      if (!container || !(window as any).paypal) return;
+      container.innerHTML = "";
+      setPaypalLoading(false);
+
+      (window as any).paypal.Buttons({
+        style: { color: "black", shape: "rect", label: "pay", height: 48 },
+        createOrder: () => paypalOrderId,
+        onApprove: async (data: any) => {
+          setLoading(true);
+          try {
+            const res = await fetch(`${API_URL}/v1/tournaments/${tournamentId}/confirm-payment`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt()}` },
+              body: JSON.stringify({
+                intent_id: intentId,
+                paypal_order_id: data.orderID,
+              }),
+            });
+            const result = await res.json();
+            if (result.success) {
+              setEntryResult(result.data);
+              setStep("success");
+            } else {
+              setError(result.message || "Payment confirmation failed");
+              setStep("error");
+            }
+          } catch (err: any) {
+            setError(err.message || "Payment error");
+            setStep("error");
+          } finally {
+            setLoading(false);
+          }
+        },
+        onCancel: () => { setError("Payment cancelled"); },
+        onError: (err: any) => { setError("PayPal error. Try again."); },
+      }).render("#paypal-button-container");
+    }, 100);
   };
 
   return (
@@ -259,7 +409,7 @@ export default function Checkout() {
                         </form>
                       </Show>
 
-                      {/* PAYMENT METHOD */}
+                      {/* PAYMENT METHOD — PayPal/Card or Crypto */}
                       <Show when={step() === "method"}>
                         <Show when={userName()}>
                           <div class="mb-4 flex items-center gap-2 bg-green-900/15 border border-green-700/20 rounded-lg px-4 py-2.5">
@@ -268,49 +418,22 @@ export default function Checkout() {
                           </div>
                         </Show>
                         <h2 class="text-xl font-bold text-white mb-1">Choose payment method</h2>
-                        <p class="text-sm text-gray-500 mb-6">Select how you want to pay the entry fee</p>
+                        <p class="text-sm text-gray-500 mb-4">Entry fee: <span class="text-white font-bold">${t().entry_fee}</span></p>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 max-w-2xl">
-                          <PaymentOption method="card" active={paymentMethod()} onClick={() => setPaymentMethod("card")} />
-                          <PaymentOption method="crypto" active={paymentMethod()} onClick={() => setPaymentMethod("crypto")} />
-                          <PaymentOption method="paypal" active={paymentMethod()} onClick={() => setPaymentMethod("paypal")} />
-                        </div>
-
-                        <div class="flex gap-3">
-                          <Show when={!userName()}>
-                            <button onClick={() => setStep("auth")}
-                              class="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition text-sm">
-                              \u2190 Back
-                            </button>
-                          </Show>
-                          <button onClick={() => setStep("payment")}
-                            class="px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition text-sm">
-                            Continue \u2192
-                          </button>
-                        </div>
-                      </Show>
-
-                      {/* PAYMENT */}
-                      <Show when={step() === "payment"}>
-                        <h2 class="text-xl font-bold text-white mb-1">Complete payment</h2>
-                        <p class="text-sm text-gray-500 mb-6">
-                          {voucherApplied() ? "Free entry with voucher!" : `Pay $${t().entry_fee} to enter ${t().name}`}
-                        </p>
-
-                        <div class="mb-6 max-w-md">
+                        {/* Voucher */}
+                        <div class="mb-5 max-w-lg">
                           <Show when={!voucherApplied()}>
                             <div class="flex gap-2">
-                              <input type="text" placeholder="Voucher code (optional)" value={voucherCode()}
+                              <input type="text" placeholder="Voucher code" value={voucherCode()}
                                 onInput={(e) => setVoucherCode(e.currentTarget.value)}
-                                class="flex-1 px-4 py-2.5 bg-[#0a0a0a] border border-gray-700 rounded-lg text-white text-sm focus:border-green-500 focus:outline-none font-mono" />
+                                class="flex-1 px-3 py-2 bg-[#0a0a0a] border border-gray-800 rounded-lg text-white text-sm focus:border-green-500 focus:outline-none font-mono" />
                               <Show when={voucherCode().length > 0}>
                                 <button onClick={() => setVoucherApplied(true)}
-                                  class="px-4 py-2.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition text-sm">
+                                  class="px-4 py-2 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition text-sm">
                                   Apply
                                 </button>
                               </Show>
                             </div>
-                            <p class="text-[10px] text-gray-600 mt-1">Have a retry voucher? Enter it above to skip payment.</p>
                           </Show>
                           <Show when={voucherApplied()}>
                             <div class="flex items-center gap-2 bg-green-900/20 border border-green-700/30 rounded-lg px-4 py-2.5">
@@ -322,52 +445,183 @@ export default function Checkout() {
                           </Show>
                         </div>
 
-                        <Show when={!voucherApplied()}>
-                          <div class="bg-[#0a0a0a] border border-gray-800 rounded-lg p-6 mb-6 max-w-md">
-                            <Show when={paymentMethod() === "card"}>
-                              <p class="text-gray-400 text-sm mb-2">Card payment integration coming soon</p>
-                              <p class="text-xs text-gray-600">Use the "Join Tournament" button below to test the entry flow without payment</p>
-                            </Show>
-                            <Show when={paymentMethod() === "crypto"}>
-                              <p class="text-gray-400 text-sm mb-2">Crypto payment integration coming soon</p>
-                              <p class="text-xs text-gray-600">Will support BTC, ETH, USDT via NowPayments</p>
-                            </Show>
+                        {/* Payment method buttons */}
+                        <div class="space-y-3 max-w-lg mb-6">
+                          {/* PayPal / Credit Card */}
+                          <button onClick={() => setPaymentMethod("paypal")}
+                            class={`w-full flex items-center gap-4 p-5 rounded-xl border transition ${
+                              paymentMethod() === "paypal" ? "border-[#0070BA] bg-[#0070BA]/5" : "border-gray-800 bg-[#0a0a0a] hover:border-gray-700"
+                            }`}>
+                            <img src="https://www.paypalobjects.com/webstatic/icon/pp258.png" alt="PayPal" class="w-10 h-10 object-contain" />
+                            <div class="text-left flex-1">
+                              <p class="text-white font-semibold text-sm">PayPal or Credit Card</p>
+                              <p class="text-gray-500 text-xs">Secure payment via PayPal</p>
+                              <div class="flex gap-1.5 mt-2">
+                                <svg width="32" height="20" viewBox="0 0 32 20" fill="none"><rect width="32" height="20" rx="2" fill="#1434CB"/><text x="16" y="14" text-anchor="middle" fill="white" font-size="10" font-weight="700">VISA</text></svg>
+                                <svg width="32" height="20" viewBox="0 0 32 20" fill="none"><rect width="32" height="20" rx="2" fill="#EB001B"/><circle cx="12" cy="10" r="6" fill="#FF5F00"/><circle cx="20" cy="10" r="6" fill="#F79E1B"/></svg>
+                              </div>
+                            </div>
                             <Show when={paymentMethod() === "paypal"}>
-                              <p class="text-gray-400 text-sm mb-2">PayPal integration coming soon</p>
-                              <p class="text-xs text-gray-600">Standard PayPal checkout flow</p>
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0070BA" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
                             </Show>
-                          </div>
-                        </Show>
+                          </button>
+
+                          {/* Crypto */}
+                          <button onClick={() => setPaymentMethod("crypto")}
+                            class={`w-full flex items-center gap-4 p-5 rounded-xl border transition ${
+                              paymentMethod() === "crypto" ? "border-[#F7931A] bg-[#F7931A]/5" : "border-gray-800 bg-[#0a0a0a] hover:border-gray-700"
+                            }`}>
+                            <div class="w-10 h-10 rounded-lg bg-[#F7931A] flex items-center justify-center text-white font-bold text-lg">B</div>
+                            <div class="text-left flex-1">
+                              <p class="text-white font-semibold text-sm">Cryptocurrency</p>
+                              <p class="text-gray-500 text-xs">BTC, ETH, SOL, USDC, USDT</p>
+                              <div class="flex gap-1.5 mt-2 text-xs text-gray-500">
+                                <span style="color:#F7931A">BTC</span>
+                                <span style="color:#627EEA">ETH</span>
+                                <span style="color:#9945FF">SOL</span>
+                                <span style="color:#2775CA">USDC</span>
+                                <span style="color:#26A17B">USDT</span>
+                              </div>
+                            </div>
+                            <Show when={paymentMethod() === "crypto"}>
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F7931A" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                            </Show>
+                          </button>
+                        </div>
 
                         <Show when={error()}>
                           <p class="text-red-400 text-sm mb-4">{error()}</p>
                         </Show>
 
                         <div class="flex gap-3">
-                          <button onClick={() => setStep("method")}
-                            class="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition text-sm">
-                            \u2190 Back
-                          </button>
-                          <button onClick={handleEnter} disabled={loading()}
+                          <Show when={!userName()}>
+                            <button onClick={() => setStep("auth")}
+                              class="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition text-sm">
+                              Back
+                            </button>
+                          </Show>
+                          <button onClick={handleStartPayment} disabled={loading()}
                             class="px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition disabled:opacity-50 text-sm">
-                            {loading() ? "Processing..." : voucherApplied() ? "Join Free with Voucher" : `Join Tournament \u2014 $${t().entry_fee}`}
+                            {loading() ? "Processing..." : `Pay $${t().entry_fee}`}
                           </button>
                         </div>
+                      </Show>
+
+                      {/* PAYMENT — PayPal buttons or Crypto address */}
+                      <Show when={step() === "payment"}>
+                        <Show when={paymentMethod() === "paypal"}>
+                          <h2 class="text-xl font-bold text-white mb-4">Complete PayPal payment</h2>
+                          <Show when={paypalLoading()}>
+                            <div class="flex items-center gap-3 text-gray-400 py-8">
+                              <div class="w-5 h-5 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin" />
+                              <span class="text-sm">Loading PayPal...</span>
+                            </div>
+                          </Show>
+                          <div id="paypal-button-container" class="max-w-md" />
+                          <Show when={error()}>
+                            <p class="text-red-400 text-sm mt-4">{error()}</p>
+                          </Show>
+                          <button onClick={() => { setStep("method"); setError(null); }}
+                            class="mt-4 px-6 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition text-sm">
+                            Back
+                          </button>
+                        </Show>
+
+                        <Show when={paymentMethod() === "crypto"}>
+                          <Show when={!cryptoPayData()}>
+                            {/* Token selection */}
+                            <h2 class="text-xl font-bold text-white mb-4">Choose cryptocurrency</h2>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-md mb-6">
+                              {[
+                                { id: "btc", label: "BTC", name: "Bitcoin", color: "#F7931A", cur: "btc" },
+                                { id: "eth", label: "ETH", name: "Ether", color: "#627EEA", cur: "eth" },
+                                { id: "sol", label: "SOL", name: "Solana", color: "#9945FF", cur: "sol" },
+                                { id: "usdc", label: "USDC", name: "USD Coin", color: "#2775CA", cur: "usdc" },
+                                { id: "usdt", label: "USDT", name: "Tether", color: "#26A17B", cur: "usdterc20" },
+                              ].map((tk) => (
+                                <button onClick={() => handleCryptoCreate(tk.cur)} disabled={loading()}
+                                  class="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-800 bg-[#0a0a0a] hover:border-gray-600 transition disabled:opacity-50">
+                                  <svg viewBox="0 0 32 32" width="32" height="32">
+                                    <circle cx="16" cy="16" r="16" fill={tk.color}/>
+                                    <text x="16" y="21" text-anchor="middle" fill="#fff" font-size={tk.label.length > 3 ? "9" : "12"} font-weight="700" font-family="sans-serif">{tk.label}</text>
+                                  </svg>
+                                  <span class="text-white text-xs font-bold">{tk.name}</span>
+                                </button>
+                              ))}
+                            </div>
+                            <Show when={loading()}>
+                              <div class="flex items-center gap-3 text-gray-400">
+                                <div class="w-5 h-5 border-2 border-gray-600 border-t-orange-500 rounded-full animate-spin" />
+                                <span class="text-sm">Creating payment...</span>
+                              </div>
+                            </Show>
+                            <Show when={error()}>
+                              <p class="text-red-400 text-sm mt-2">{error()}</p>
+                            </Show>
+                            <button onClick={() => { setStep("method"); setError(null); }}
+                              class="mt-4 px-6 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition text-sm">
+                              Back
+                            </button>
+                          </Show>
+
+                          <Show when={cryptoPayData()}>
+                            {/* Payment address + monitor */}
+                            <h2 class="text-xl font-bold text-white mb-2">Send payment</h2>
+                            <div class="bg-[#0a0a0a] border border-gray-800 rounded-xl p-5 max-w-md mb-4">
+                              <div class="flex items-center justify-between mb-3">
+                                <span class="text-sm text-gray-400">Amount</span>
+                                <span class="text-xl font-bold text-green-400">
+                                  {cryptoPayData()!.payAmount} {cryptoPayData()!.payCurrency?.toUpperCase()}
+                                </span>
+                              </div>
+                              <div class="mb-3">
+                                <span class="text-xs text-gray-500 block mb-1">Payment address</span>
+                                <div class="flex items-center gap-2 bg-black rounded-lg px-3 py-2 border border-gray-800">
+                                  <code class="text-xs text-gray-300 break-all flex-1">{cryptoPayData()!.payAddress}</code>
+                                  <button onClick={() => navigator.clipboard.writeText(cryptoPayData()!.payAddress)}
+                                    class="text-xs text-blue-400 hover:text-blue-300 flex-shrink-0">
+                                    Copy
+                                  </button>
+                                </div>
+                              </div>
+                              <p class="text-xs text-yellow-500">Send exactly this amount to the address above. Payment is monitored automatically.</p>
+                            </div>
+
+                            <div class="flex items-center gap-3 text-gray-400 mb-4">
+                              <div class="w-4 h-4 border-2 border-gray-600 border-t-green-500 rounded-full animate-spin" />
+                              <span class="text-sm">Waiting for payment...</span>
+                              <button onClick={async () => { if (await pollCryptoPayment()) return; setError("Payment not confirmed yet. Try again in a moment."); }}
+                                class="text-xs text-blue-400 hover:text-blue-300 ml-auto">
+                                Check now
+                              </button>
+                            </div>
+
+                            <Show when={error()}>
+                              <p class="text-red-400 text-sm mb-4">{error()}</p>
+                            </Show>
+                            <button onClick={() => { setCryptoPayData(null); setError(null); }}
+                              class="px-6 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition text-sm">
+                              Back
+                            </button>
+                          </Show>
+                        </Show>
                       </Show>
 
                       {/* SUCCESS */}
                       <Show when={step() === "success"}>
                         <div class="text-center py-8">
-                          <div class="text-5xl mb-4">🏆</div>
+                          <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-green-600/20 flex items-center justify-center">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                          </div>
                           <h2 class="text-2xl font-bold text-white mb-2">You're In!</h2>
                           <p class="text-gray-400 mb-6">Your tournament account is ready. Start trading when the tournament begins.</p>
-                          <a href={`https://broker.cryptonite.trade/?from_tournament=true&account_id=${entryResult()?.trading_account_id}`}
+                          <a href={`https://broker.cryptonite.trade/?from_tournament=true&account_id=${entryResult()?.trading_account_id || ""}`}
                             class="inline-block px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition">
                             Open Trading Station
                           </a>
                           <div class="mt-4">
                             <A href={`/tournaments/${t().slug}`} class="text-sm text-gray-500 hover:text-white transition">
-                              View Tournament Rankings \u2192
+                              View Tournament Rankings
                             </A>
                           </div>
                         </div>
@@ -376,10 +630,12 @@ export default function Checkout() {
                       {/* ERROR */}
                       <Show when={step() === "error"}>
                         <div class="text-center py-8">
-                          <div class="text-5xl mb-4">\u274C</div>
+                          <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-600/20 flex items-center justify-center">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                          </div>
                           <h2 class="text-xl font-bold text-white mb-2">Entry Failed</h2>
                           <p class="text-red-400 text-sm mb-6">{error()}</p>
-                          <button onClick={() => { setError(null); setStep("payment"); }}
+                          <button onClick={() => { setError(null); setStep("method"); }}
                             class="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition">
                             Try Again
                           </button>
@@ -650,22 +906,3 @@ function StepIndicator(props: { current: Step }) {
   );
 }
 
-function PaymentOption(props: { method: PaymentMethod; active: PaymentMethod; onClick: () => void }) {
-  const isActive = () => props.method === props.active;
-  const labels: Record<PaymentMethod, { name: string; icon: string; desc: string }> = {
-    card: { name: "Card", icon: "\uD83D\uDCB3", desc: "Visa, Mastercard" },
-    crypto: { name: "Crypto", icon: "\u20BF", desc: "BTC, ETH, USDT" },
-    paypal: { name: "PayPal", icon: "\uD83C\uDD7F", desc: "PayPal balance" },
-  };
-  const info = labels[props.method];
-  return (
-    <button onClick={props.onClick}
-      class={`p-4 rounded-lg border transition text-left ${
-        isActive() ? "bg-green-500/10 border-green-500/40" : "bg-[#0a0a0a] border-gray-800 hover:border-gray-700"
-      }`}>
-      <div class="text-2xl mb-2">{info.icon}</div>
-      <p class={`text-sm font-bold ${isActive() ? "text-green-400" : "text-white"}`}>{info.name}</p>
-      <p class="text-[10px] text-gray-600">{info.desc}</p>
-    </button>
-  );
-}
