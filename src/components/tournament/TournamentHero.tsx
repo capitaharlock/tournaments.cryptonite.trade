@@ -117,9 +117,12 @@ export default function TournamentHero(props: Props) {
           </Show>
           <Show when={isReg()}>
             <div>
-              <div class="flex items-center justify-between text-[10px] mb-1">
-                <span class="text-gray-500">{t().reserved_spots}/{t().total_spots} spots</span>
-                <span class="text-gray-600">{t().spots_available} left</span>
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs text-gray-400 font-medium">{t().reserved_spots}/{t().total_spots} registered</span>
+                <Show when={t().spots_available > 0}
+                  fallback={<span class="text-xs font-bold text-red-400">SOLD OUT</span>}>
+                  <span class="text-xs font-bold text-yellow-300">{t().spots_available} spots left</span>
+                </Show>
               </div>
               <div class="h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
                 <div class={`h-full bg-gradient-to-r ${style().gradient} rounded-full transition-all`} style={`width:${spotsPercent()}%`} />

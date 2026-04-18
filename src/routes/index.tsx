@@ -817,10 +817,15 @@ function NextTournamentBanner(props: { upcoming: Tournament[] }) {
             </span>
             <div>
               <p class="text-[10px] text-green-400 font-black uppercase tracking-[0.15em]">
-                {next()!.status === "registration" ? "Registration Open" : "Coming Up"}
+                {next()!.status === "registration"
+                  ? next()!.spots_available > 0 ? "Registration Open" : "SOLD OUT"
+                  : "Coming Up"}
               </p>
               <p class="text-sm text-white font-bold">
                 {next()!.name} — ${Number(next()!.account_size).toLocaleString()} account
+                {next()!.status === "registration" && next()!.spots_available > 0 && (
+                  <span class="ml-2 text-xs text-yellow-300 font-bold">{next()!.spots_available} spots left</span>
+                )}
               </p>
             </div>
           </div>
@@ -843,10 +848,18 @@ function NextTournamentBanner(props: { upcoming: Tournament[] }) {
                   {String(remaining()!.s).padStart(2, "0")}s
                 </span>
               </div>
-              <A href={next()!.status === "registration" ? `/checkout/${next()!.slug}` : `/tournaments/${next()!.slug}`}
-                class="ml-2 px-3 py-1 bg-green-600 hover:bg-green-500 text-white font-bold text-[11px] rounded transition">
-                {next()!.status === "registration" ? "Get Your Spot" : "View Details"}
-              </A>
+              <Show when={next()!.status === "registration" && next()!.spots_available > 0}
+                fallback={
+                  <A href={`/tournaments/${next()!.slug}`}
+                    class="ml-2 px-3 py-1 bg-gray-700 text-gray-300 font-bold text-[11px] rounded transition hover:bg-gray-600">
+                    {next()!.spots_available <= 0 ? "SOLD OUT" : "View Details"}
+                  </A>
+                }>
+                <A href={`/checkout/${next()!.slug}`}
+                  class="ml-2 px-3 py-1 bg-green-600 hover:bg-green-500 text-white font-bold text-[11px] rounded transition">
+                  Get Your Spot
+                </A>
+              </Show>
             </div>
           </Show>
         </div>
