@@ -201,35 +201,28 @@ export default function TournamentDetail() {
                       </div>
                     </div>
 
-                    {/* Rankings table */}
+                    {/* Rankings / Participants table */}
                     <Show
-                      when={rankings().length > 0 && !isScheduled() && !isReg()}
+                      when={rankings().length > 0 && !isScheduled()}
                       fallback={
-                        <Show
-                          when={isScheduled() || isReg()}
-                          fallback={
-                            <div class="text-center py-16 text-gray-700 text-sm">
-                              No participants yet
-                            </div>
-                          }
-                        >
-                          <div class="text-center py-16">
-                            <div class={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br ${style().softGradient} border ${style().ring} mb-3`}>
-                              <svg class={`w-5 h-5 ${style().accent}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                            </div>
-                            <p class={`text-sm font-bold ${style().accent} mb-1`}>
-                              {isScheduled() ? "Tournament Not Started" : "Waiting For Start"}
-                            </p>
-                            <p class="text-gray-600 text-xs">
-                              {isScheduled()
-                                ? "Rankings will appear once the tournament begins"
-                                : "Registration is open — rankings appear when the tournament starts"}
-                            </p>
+                        <div class="text-center py-16">
+                          <div class={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br ${style().softGradient} border ${style().ring} mb-3`}>
+                            <svg class={`w-5 h-5 ${style().accent}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                           </div>
-                        </Show>
+                          <p class={`text-sm font-bold ${style().accent} mb-1`}>
+                            {isScheduled() ? "Tournament Not Started" : isReg() ? "Waiting For Participants" : "No participants yet"}
+                          </p>
+                          <p class="text-gray-600 text-xs">
+                            {isScheduled()
+                              ? "Rankings will appear once registration opens"
+                              : isReg()
+                              ? "Be the first to join — registration is open"
+                              : ""}
+                          </p>
+                        </div>
                       }
                     >
-                      <RankingTable rankings={rankings()} prizes={t().prizes as any} tournamentId={t().id} />
+                      <RankingTable rankings={rankings()} prizes={isReg() ? [] : (t().prizes as any)} tournamentId={t().id} />
                     </Show>
                   </div>
                 </div>
