@@ -46,7 +46,7 @@ export default function Schedule() {
             <p class="text-[10px] text-green-500 uppercase tracking-[0.2em] font-bold mb-1">Schedule</p>
             <h1 class="text-3xl font-black text-white mb-1">Upcoming Tournaments</h1>
             <p class="text-sm text-gray-500">
-              New events every Friday at 6:00 PM EST (22:00 UTC). Reserve your spot before registration closes.
+              New tournaments launch regularly. Reserve your spot before registration closes.
             </p>
           </div>
         </div>
@@ -323,7 +323,7 @@ function ScheduleCard(props: { tournament: Tournament }) {
             <StatLine label="Max Drawdown" value={`${t().max_drawdown_percentage}%`} />
             <StatLine label="Daily Drawdown" value={`${t().max_daily_drawdown_percentage}%`} />
             <StatLine label="Ranked By" value="Profit %" />
-            <StatLine label="Instruments" value="25 crypto pairs" />
+            <StatLine label="Instruments" value="Crypto pairs" />
             <StatLine label="Leverage" value="None (1:1)" />
             <StatLine label="Elimination" value="Drawdown breach" />
           </div>

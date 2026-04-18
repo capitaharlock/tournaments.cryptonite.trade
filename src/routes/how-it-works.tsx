@@ -63,7 +63,7 @@ export default function HowItWorks() {
               n={1}
               icon="ticket"
               title="Pick Your Tournament"
-              text="Sprint, Classic or Marathon. Each has a fixed entry fee, account size and duration. Three new events launch every Tournament Friday at 22:00 UTC."
+              text="Sprint, Classic or Marathon. Each has a fixed entry fee, account size and duration. New tournaments launch regularly — check the schedule for upcoming events."
             />
             <StepCard
               n={2}
@@ -292,7 +292,7 @@ export default function HowItWorks() {
               Ready to compete?
             </h2>
             <p class="text-gray-500 text-base mb-6">
-              New tournaments launch every Friday at 22:00 UTC.
+              New tournaments launch regularly. Check upcoming events below.
             </p>
             <div class="flex items-center justify-center gap-3 flex-wrap">
               <A
@@ -530,7 +530,7 @@ function FaqItem(props: { q: string; a: string }) {
 const FAQ_ITEMS = [
   {
     q: "When do tournaments start?",
-    a: "Every Friday at 22:00 UTC (6pm EST / 3pm PST). Sprint + Classic launch together every Tournament Friday. Marathons start on the 1st of each month. Registration opens 24h, 3 days or ~10 days before the start depending on the tier.",
+    a: "New tournaments are scheduled regularly. Sprint and Classic events launch weekly, Marathons monthly. Registration opens before each event — check the schedule page for exact dates and times.",
   },
   {
     q: "Can I join multiple tournaments at once?",
@@ -558,7 +558,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "What instruments can I trade?",
-    a: "25 crypto perpetual pairs, including BTC, ETH, SOL and other top coins. The exact list is the same one available on the main Cryptonite platform — no hidden or special instruments.",
+    a: "Crypto perpetual pairs, including BTC, ETH, SOL and other top coins. The exact list is the same one available on the main Cryptonite platform — no hidden or special instruments.",
   },
   {
     q: "Can I withdraw the tournament account balance?",

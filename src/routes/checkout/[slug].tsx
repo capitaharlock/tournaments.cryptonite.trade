@@ -720,7 +720,7 @@ export default function Checkout() {
                       <RuleRow label="Max Drawdown" value={`${t().max_drawdown_percentage}%`} />
                       <RuleRow label="Daily Drawdown" value={`${t().max_daily_drawdown_percentage}%`} />
                       <RuleRow label="Ranked By" value="Profit %" />
-                      <RuleRow label="Instruments" value="25 crypto pairs" />
+                      <RuleRow label="Instruments" value="Crypto pairs" />
                       <RuleRow label="Leverage" value="None (1:1)" />
                       <RuleRow label="Elimination" value="Drawdown breach" />
                     </div>

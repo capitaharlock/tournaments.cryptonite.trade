@@ -2,7 +2,6 @@ import { createResource, createSignal, onCleanup, onMount, For, Show, createMemo
 import { A } from "@solidjs/router";
 import { Title } from "@solidjs/meta";
 import { fetchTournaments, fetchRankings } from "../services/api";
-import { generateMockRankings } from "../services/mockData";
 import type { Tournament } from "../types/tournament";
 import Header from "../components/layout/Header";
 import FlipClock from "../components/tournament/FlipClock";
@@ -124,14 +123,14 @@ export default function Home() {
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              {/* Box 1: small — Total Stats */}
+              {/* Box 1: small — Platform Stats (real data) */}
               <div class="lg:col-span-3">
-                <StatsCardBox />
+                <StatsCardBox active={active() || []} registering={registering() || []} scheduled={scheduled() || []} finished={finished() || []} />
               </div>
 
-              {/* Box 2: WIDE — Prize Vault (the star) */}
+              {/* Box 2: WIDE — Prize Vault (calculated from real data) */}
               <div class="lg:col-span-5">
-                <PrizeVaultBox />
+                <PrizeVaultBox tournaments={[...(active() || []), ...(registering() || []), ...(scheduled() || [])]} />
               </div>
 
               {/* Box 3: small — Hall of Fame */}
@@ -210,11 +209,7 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
   });
   onCleanup(() => clearInterval(pollInterval));
 
-  const rankings = createMemo(() => {
-    const real = apiRankings();
-    if (real.length > 0) return real;
-    return generateMockRankings(props.maxRanks, t().name.includes("Sprint") ? 6 : 8);
-  });
+  const rankings = createMemo(() => apiRankings());
 
   return (
     <div class="bg-black border border-[#222] rounded-xl flex flex-col overflow-hidden shadow-xl shadow-black/50">
@@ -501,48 +496,50 @@ function UpcomingBox(props: { rest: Tournament[]; registering: Tournament[]; sch
 // PRIZE VAULT — total prize pool + breakdown + trust signal
 // ═══════════════════════════════════════════════════════════════════════════
 
-function PrizeVaultBox() {
-  // These will become real API data later
-  const totalCash = 2400;
-  const totalChallenges = 42;
-  const totalQualify = 48;
-  const totalRetries = 120;
-  const totalValue = 10000;
+function PrizeVaultBox(props: { tournaments: Tournament[] }) {
+  // Calculate from real tournament data
+  const stats = createMemo(() => {
+    let cash = 0, challenges = 0, qualify = 0, retries = 0;
+    for (const t of props.tournaments) {
+      for (const p of (t.prizes as any[]) || []) {
+        const count = (p.rank_to || 0) - (p.rank_from || 0) + 1;
+        if (p.type === "cash") cash += (p.value || 0) * count;
+        else if (p.type === "challenge") challenges += count;
+        else if (p.type === "qualify") qualify += count;
+        else if (p.type === "retry") retries += count;
+      }
+    }
+    return { cash, challenges, qualify, retries, total: cash + challenges * 100 + qualify * 50 };
+  });
 
   return (
     <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full">
       <div class="p-5">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">Prize Vault</h2>
-          <span class="text-[10px] text-yellow-400 font-medium">Guaranteed • Next payout</span>
+          <span class="text-[10px] text-yellow-400 font-medium">Guaranteed</span>
         </div>
 
-        {/* Big total */}
         <div class="text-center mb-5">
-          <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total value in upcoming tournaments</p>
-          <p class="text-5xl font-black text-yellow-300 drop-shadow-lg">${totalValue.toLocaleString()}+</p>
+          <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total value across active &amp; upcoming</p>
+          <p class="text-5xl font-black text-yellow-300 drop-shadow-lg">${stats().total.toLocaleString()}+</p>
         </div>
 
-        {/* Breakdown grid */}
         <div class="grid grid-cols-4 gap-2 mb-4">
-          <VaultStat icon="cash" label="Cash" value={`$${totalCash}`} />
-          <VaultStat icon="challenge" label="Challenges" value={`${totalChallenges}×`} />
-          <VaultStat icon="qualify" label="Qualify" value={`${totalQualify}×`} />
-          <VaultStat icon="retry" label="Retries" value={`${totalRetries}×`} />
+          <VaultStat icon="cash" label="Cash" value={`$${stats().cash}`} />
+          <VaultStat icon="challenge" label="Challenges" value={`${stats().challenges}x`} />
+          <VaultStat icon="qualify" label="Qualify" value={`${stats().qualify}x`} />
+          <VaultStat icon="retry" label="Retries" value={`${stats().retries}x`} />
         </div>
 
-        {/* Trust signal */}
-        <div class="bg-[#0a0a0a] rounded-lg px-4 py-3 flex items-center justify-between border border-gray-800/60">
-          <div class="flex items-center gap-2">
-            <svg class="w-4 h-4 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            <div>
-              <p class="text-xs text-white font-medium">Funds held in escrow</p>
-              <p class="text-[10px] text-gray-600">Verified crypto vault • Payouts guaranteed</p>
-            </div>
+        <div class="bg-[#0a0a0a] rounded-lg px-4 py-3 flex items-center gap-2 border border-gray-800/60">
+          <svg class="w-4 h-4 text-green-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          <div>
+            <p class="text-xs text-white font-medium">Funds held in escrow</p>
+            <p class="text-[10px] text-gray-600">Payouts guaranteed for all tournament winners</p>
           </div>
-          <span class="text-[10px] text-gray-700">Verify →</span>
         </div>
       </div>
     </div>
@@ -565,141 +562,41 @@ function VaultStat(props: { icon: string; label: string; value: string }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// HALL OF FAME — top winners by tournament wins
-// ═══════════════════════════════════════════════════════════════════════════
-
-const HALL_OF_FAME = [
-  { nickname: "cryptowolf", wins: 14, earned: 1850, country: "US" },
-  { nickname: "luna_trader", wins: 11, earned: 1420, country: "GB" },
-  { nickname: "btc_hunter", wins: 9, earned: 1100, country: "DE" },
-  { nickname: "eth_maxi", wins: 8, earned: 980, country: "CA" },
-  { nickname: "sol_rider", wins: 7, earned: 850, country: "AU" },
-];
-
-function HallOfFameBox() {
-  return (
-    <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50">
-      <div class="px-4 py-3 border-b border-[#1a1a1a] bg-gradient-to-r from-purple-600/20 to-pink-500/5 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <svg class="w-4 h-4 text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <circle cx="12" cy="8" r="7" />
-            <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
-          </svg>
-          <h2 class="text-sm font-bold text-white">Hall of Fame</h2>
-        </div>
-        <span class="text-[10px] text-gray-600">Top winners</span>
-      </div>
-
-      <div class="p-2">
-        <For each={HALL_OF_FAME}>
-          {(entry, i) => (
-            <div class="flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-white/[0.03] transition">
-              <div class={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 ${
-                i() === 0 ? "bg-yellow-400/10 border border-yellow-400/30 text-yellow-400" :
-                i() === 1 ? "bg-gray-300/10 border border-gray-400/30 text-gray-300" :
-                i() === 2 ? "bg-orange-400/10 border border-orange-400/30 text-orange-400" :
-                "bg-[#1a1a1a] border border-gray-700/40 text-gray-500"
-              }`}>
-                {i() + 1}
-              </div>
-              <span class="flex-1 text-sm text-white font-medium truncate">{entry.nickname}</span>
-              <div class="text-right">
-                <p class="text-xs text-green-400 font-bold">{entry.wins} wins</p>
-                <p class="text-[10px] text-gray-600">${entry.earned.toLocaleString()} earned</p>
-              </div>
-            </div>
-          )}
-        </For>
-      </div>
-
-      <div class="border-t border-[#1a1a1a] px-4 py-2 bg-[#0a0a0a] text-center">
-        <span class="text-[10px] text-gray-600">Based on last 30 days</span>
-      </div>
-    </div>
-  );
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RECENT RESULTS — last finished tournaments with podium
 // ═══════════════════════════════════════════════════════════════════════════
 
 function RecentResultsBox(props: { finished: Tournament[] }) {
-  const [expanded, setExpanded] = createSignal<string | null>(null);
-
-  // Mock podium data (real data will come from ranking API later)
-  const mockPodium = (tournamentId: string) => [
-    { rank: 1, nickname: "cryptowolf", prize: "$100 Cash" },
-    { rank: 2, nickname: "luna_trader", prize: "Free Challenge" },
-    { rank: 3, nickname: "btc_hunter", prize: "Qualify Account" },
-  ];
-
   return (
     <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full">
       <div class="flex items-center justify-between px-5 pt-5 pb-3">
         <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">Recent Results</h2>
-        <span class="text-[10px] text-gray-600">Last {Math.min(props.finished.length, 10)}</span>
       </div>
 
       <div>
         <Show when={props.finished.length > 0} fallback={
           <div class="text-center py-10 text-gray-700 text-xs">No finished tournaments yet</div>
         }>
-          <For each={props.finished.slice(0, 10)}>
-            {(t) => {
-              const isExpanded = () => expanded() === t.id;
-              const podium = mockPodium(t.id);
-              return (
-                <div class="border-b border-[#1a1a1a] last:border-0">
-                  <button
-                    class="w-full px-4 py-3 hover:bg-white/[0.02] transition text-left"
-                    onClick={() => setExpanded(isExpanded() ? null : t.id)}
-                  >
-                    <div class="flex items-center justify-between mb-1.5">
-                      <span class="text-sm font-medium text-white">{t.name}</span>
-                      <span class="text-[10px] text-gray-600">
-                        {new Date(t.ends_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </span>
-                    </div>
-                    {/* Top 3 podium */}
-                    <div class="flex items-center gap-3 text-[11px]">
-                      <For each={podium}>
-                        {(p) => (
-                          <div class="flex items-center gap-1">
-                            <span class={`${
-                              p.rank === 1 ? "text-yellow-400" :
-                              p.rank === 2 ? "text-gray-300" :
-                              "text-orange-400"
-                            }`}>
-                              {p.rank === 1 ? "🥇" : p.rank === 2 ? "🥈" : "🥉"}
-                            </span>
-                            <span class="text-gray-400">{p.nickname}</span>
-                          </div>
-                        )}
-                      </For>
-                    </div>
-                  </button>
-
-                  {/* Expanded: all winners */}
-                  <Show when={isExpanded()}>
-                    <div class="bg-[#0a0a0a] px-4 py-3 border-t border-[#1a1a1a]">
-                      <p class="text-[10px] text-gray-600 uppercase mb-2">All Winners</p>
-                      <For each={podium}>
-                        {(p) => (
-                          <div class="flex items-center justify-between py-1 text-xs">
-                            <span class="text-gray-400">#{p.rank} {p.nickname}</span>
-                            <span class="text-green-400">{p.prize}</span>
-                          </div>
-                        )}
-                      </For>
-                      <A href={`/tournaments/${t.slug}`} class="block mt-2 text-[11px] text-green-500 hover:text-green-400">
-                        View full results →
-                      </A>
-                    </div>
-                  </Show>
+          <For each={props.finished.slice(0, 5)}>
+            {(t) => (
+              <A
+                href={`/tournaments/${t.slug}`}
+                class="block px-4 py-3 border-b border-[#1a1a1a] hover:bg-white/[0.02] transition"
+              >
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-sm font-medium text-white">{t.name}</span>
+                  <span class="text-[10px] text-gray-600">
+                    {new Date(t.ends_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </span>
                 </div>
-              );
-            }}
+                <div class="flex items-center gap-2 text-[10px]">
+                  <span class="text-gray-500">{t.total_spots} players</span>
+                  <span class="text-gray-700">|</span>
+                  <span class="text-yellow-400/70">{(t.prizes as any[])[0]?.label || ""}</span>
+                </div>
+              </A>
+            )}
           </For>
         </Show>
       </div>
@@ -711,15 +608,24 @@ function RecentResultsBox(props: { finished: Tournament[] }) {
 // STATS CARD — quick numbers for trust/social proof
 // ═══════════════════════════════════════════════════════════════════════════
 
-function StatsCardBox() {
+function StatsCardBox(props: { active: Tournament[]; registering: Tournament[]; scheduled: Tournament[]; finished: Tournament[] }) {
+  const totalActive = () => props.active.length;
+  const totalUpcoming = () => props.registering.length + props.scheduled.length;
+  const totalFinished = () => props.finished.length;
+  const totalPlayers = () => {
+    let sum = 0;
+    for (const t of [...props.active, ...props.finished]) sum += t.reserved_spots;
+    return sum;
+  };
+
   return (
     <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full p-5">
-      <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-4">Stats</h2>
+      <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-4">Platform Stats</h2>
       <div class="space-y-3">
-        <StatRow icon="trophy" value="47" label="Tournaments completed" color="text-yellow-400" />
-        <StatRow icon="users" value="1,240" label="Total participants" color="text-blue-400" />
-        <StatRow icon="award" value="183" label="Winners crowned" color="text-purple-400" />
-        <StatRow icon="globe" value="32" label="Countries" color="text-green-400" />
+        <StatRow icon="trophy" value={String(totalActive())} label="Active tournaments" color="text-green-400" />
+        <StatRow icon="users" value={totalPlayers().toLocaleString()} label="Total participants" color="text-blue-400" />
+        <StatRow icon="award" value={String(totalFinished())} label="Tournaments completed" color="text-yellow-400" />
+        <StatRow icon="globe" value={String(totalUpcoming())} label="Upcoming tournaments" color="text-purple-400" />
       </div>
     </div>
   );
@@ -752,29 +658,26 @@ function StatRow(props: { icon: string; value: string; label: string; color: str
 // ═══════════════════════════════════════════════════════════════════════════
 
 function HallOfFameMiniBox() {
-  const top = HALL_OF_FAME.slice(0, 5);
-
   return (
     <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full p-5">
-      <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-3">Hall of Fame</h2>
-      <div class="space-y-1">
-        <For each={top}>
-          {(entry, i) => (
-            <div class="flex items-center gap-2 py-1.5 rounded hover:bg-white/[0.03] transition">
-              <span class={`w-5 text-center text-[11px] font-bold ${
-                i() === 0 ? "text-yellow-400" :
-                i() === 1 ? "text-gray-300" :
-                i() === 2 ? "text-orange-400" :
-                "text-gray-600"
-              }`}>
-                {i() + 1}
-              </span>
-              <span class="flex-1 text-xs text-gray-300 truncate">{entry.nickname}</span>
-              <span class="text-[10px] text-green-400 font-bold">{entry.wins}w</span>
-            </div>
-          )}
-        </For>
+      <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-3">How It Works</h2>
+      <div class="space-y-3">
+        <div class="flex items-start gap-2">
+          <span class="w-5 h-5 rounded-full bg-green-600/20 border border-green-600/30 flex items-center justify-center text-[10px] font-bold text-green-400 flex-shrink-0">1</span>
+          <p class="text-xs text-gray-400">Join a tournament for a small entry fee</p>
+        </div>
+        <div class="flex items-start gap-2">
+          <span class="w-5 h-5 rounded-full bg-blue-600/20 border border-blue-600/30 flex items-center justify-center text-[10px] font-bold text-blue-400 flex-shrink-0">2</span>
+          <p class="text-xs text-gray-400">Trade crypto with your tournament account</p>
+        </div>
+        <div class="flex items-start gap-2">
+          <span class="w-5 h-5 rounded-full bg-yellow-600/20 border border-yellow-600/30 flex items-center justify-center text-[10px] font-bold text-yellow-400 flex-shrink-0">3</span>
+          <p class="text-xs text-gray-400">Top traders win cash, challenges, and more</p>
+        </div>
       </div>
+      <A href="/how-it-works" class="block mt-3 text-[10px] text-green-500 hover:text-green-400 transition">
+        Learn more
+      </A>
     </div>
   );
 }
@@ -910,7 +813,7 @@ function NextTournamentBanner(props: { upcoming: Tournament[] }) {
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PRESTART EMPTY STATE — for tournaments not yet live (registration/scheduled)
-// Shows a clean "waiting to start" visual instead of mock rankings.
+// Shows a clean "waiting to start" visual for pre-start tournaments.
 // ═══════════════════════════════════════════════════════════════════════════
 
 function PrestartEmptyState(props: { tournament: Tournament }) {

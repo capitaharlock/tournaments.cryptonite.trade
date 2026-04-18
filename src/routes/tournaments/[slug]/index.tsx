@@ -4,7 +4,6 @@ import { useParams, A } from "@solidjs/router";
 import { Title } from "@solidjs/meta";
 import { fetchTournament, fetchRankings } from "../../../services/api";
 import type { Tournament } from "../../../types/tournament";
-import { generateMockRankings } from "../../../services/mockData";
 import Header from "../../../components/layout/Header";
 import FlipClock from "../../../components/tournament/FlipClock";
 import TournamentProgress from "../../../components/tournament/TournamentProgress";
@@ -127,8 +126,6 @@ export default function TournamentDetail() {
   const isFinished = () => tournament()?.status === "finished";
   const style = () => getStatusStyle(tournament()?.status);
 
-  // Demo countdown — client-side only (30 days from now)
-  const [demoTarget] = createSignal(new Date(Date.now() + 30 * 86400000).toISOString());
 
   return (
     <>
@@ -143,7 +140,7 @@ export default function TournamentDetail() {
             <div class="p-4 max-w-6xl mx-auto space-y-4">
 
               {/* ═══ DETAIL HERO — bigger, more color, prominent countdown ═══ */}
-              <DetailHero tournament={t()} demoTarget={demoTarget()} />
+              <DetailHero tournament={t()} />
 
               {/* ═══ MAIN CONTENT — 2 columns on desktop ═══ */}
               <div class="flex flex-col lg:flex-row gap-4">
@@ -381,7 +378,7 @@ export default function TournamentDetail() {
                         <RuleRow label="Max Drawdown" value={`${t().max_drawdown_percentage}%`} />
                         <RuleRow label="Daily Drawdown" value={`${t().max_daily_drawdown_percentage}%`} />
                         <RuleRow label="Ranked By" value="Profit %" />
-                        <RuleRow label="Instruments" value="25 crypto pairs" />
+                        <RuleRow label="Instruments" value="Crypto pairs" />
                         <RuleRow label="Leverage" value="None (1:1)" />
                         <RuleRow label="Elimination" value="Drawdown breach" />
                       </div>
@@ -402,7 +399,7 @@ export default function TournamentDetail() {
   );
 }
 
-function DetailHero(props: { tournament: Tournament; demoTarget?: string }) {
+function DetailHero(props: { tournament: Tournament }) {
   const t = () => props.tournament;
   const style = () => getStatusStyle(t().status);
   const isLive = () => t().status === "active";
