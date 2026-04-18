@@ -14,6 +14,7 @@ export default function TournamentHero(props: Props) {
   const isLive = () => t().status === "active";
   const isReg = () => t().status === "registration";
   const isScheduled = () => t().status === "scheduled";
+  const isFinished = () => t().status === "finished";
   const totalDays = () => Math.round((new Date(t().ends_at).getTime() - new Date(t().starts_at).getTime()) / 86400000);
   const cashPrize = () => {
     const p = (t().prizes as any[]).find(p => p.type === "cash");
@@ -90,7 +91,7 @@ export default function TournamentHero(props: Props) {
               </div>
             </div>
 
-            {/* Clock top right */}
+            {/* Clock top right / Ended date */}
             <Show when={isLive()}>
               <FlipClock targetDate={t().ends_at} size="sm" />
             </Show>
@@ -100,10 +101,18 @@ export default function TournamentHero(props: Props) {
             <Show when={isScheduled()}>
               <FlipClock targetDate={t().registration_opens_at} label="OPENS" size="sm" />
             </Show>
+            <Show when={isFinished()}>
+              <div class="text-right">
+                <p class="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Ended</p>
+                <p class="text-sm font-bold text-gray-400">
+                  {new Date(t().ends_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </p>
+              </div>
+            </Show>
           </div>
 
-          {/* Row 2: Progress (live) or Spots bar (registration) */}
-          <Show when={isLive()}>
+          {/* Row 2: Progress (live/finished) or Spots bar (registration) */}
+          <Show when={isLive() || isFinished()}>
             <TournamentProgress startsAt={t().starts_at} endsAt={t().ends_at} totalDays={totalDays()} />
           </Show>
           <Show when={isReg()}>
