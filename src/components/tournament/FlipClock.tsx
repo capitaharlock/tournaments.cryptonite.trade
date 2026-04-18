@@ -58,10 +58,8 @@ export default function FlipClock(props: Props) {
         </p>
       </Show>
       <div class={`flex items-center justify-center ${gapCls()}`}>
-        <Show when={time().d > 0}>
-          <Digit value={() => time().d} label="DAYS" box={digitBox()} labelCls={labelCls()} urgent={isLastHour()} />
-          <span class={colonCls()}>:</span>
-        </Show>
+        <Digit value={() => time().d} label="DAYS" box={digitBox()} labelCls={labelCls()} urgent={isLastHour()} />
+        <span class={colonCls()}>:</span>
         <Digit value={() => time().h} label="HRS" box={digitBox()} labelCls={labelCls()} urgent={isLastHour()} />
         <span class={colonCls()}>:</span>
         <Digit value={() => time().m} label="MIN" box={digitBox()} labelCls={labelCls()} urgent={isLastHour()} />

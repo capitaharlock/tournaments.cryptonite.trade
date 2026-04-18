@@ -197,7 +197,10 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
 
   const loadRankings = async () => {
     try {
-      const data = await fetchRankings(t().id, props.maxRanks);
+      // Active tournaments: use live endpoint (Worker in-memory)
+      // Finished/other: use DB endpoint (materialized rankings)
+      const useLive = t().status === "active";
+      const data = await fetchRankings(t().id, props.maxRanks, 0, useLive);
       setApiRankings(data || []);
     } catch (e) { /* silent */ }
   };
@@ -218,10 +221,10 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
       {/* Hero — visual tournament identity */}
       <TournamentHero tournament={t()} />
 
-      {/* Rankings (or empty state for pre-start tournaments) */}
+      {/* Rankings — show for active, finished, and registration (if has participants) */}
       <div>
         <Show
-          when={isLive() || isFinished()}
+          when={rankings().length > 0 || isLive() || isFinished()}
           fallback={<PrestartEmptyState tournament={t()} />}
         >
           <MiniRanking
@@ -324,6 +327,7 @@ function AgendaRow(props: { tournament: Tournament; isLive?: boolean; isRegister
   const durationDays = () => Math.round((new Date(t().ends_at).getTime() - new Date(t().starts_at).getTime()) / 86400000);
   const isReg = () => t().status === "registration";
   const canJoin = () => isReg() && t().spots_available > 0;
+  const isFull = () => isReg() && t().spots_available <= 0;
   const style = () => getStatusStyle(t().status);
 
   return (
@@ -331,61 +335,52 @@ function AgendaRow(props: { tournament: Tournament; isLive?: boolean; isRegister
       href={canJoin() ? `/checkout/${t().slug}` : `/tournaments/${t().slug}`}
       class="block px-4 py-3 border-b border-[#1a1a1a] hover:bg-white/[0.03] transition cursor-pointer"
     >
-      {/* Row 1: Icon + Name + Duration + Status */}
-      <div class="flex items-center justify-between mb-2">
+      {/* Row 1: Icon + Name + Status badge */}
+      <div class="flex items-center justify-between mb-1.5">
         <div class="flex items-center gap-2">
           <span class="text-base">{icon()}</span>
           <span class="text-sm font-semibold text-white">{t().name}</span>
           <span class="text-[10px] text-gray-600 bg-[#1a1a1a] px-1.5 py-0.5 rounded">{durationDays()}d</span>
         </div>
-        <div class="flex items-center gap-2">
-          <Show when={props.isLive}>
-            <span class="flex items-center gap-1 text-[10px] text-green-400 font-bold">
-              <span class="relative flex h-1.5 w-1.5"><span class="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75" /><span class="relative rounded-full h-1.5 w-1.5 bg-green-500" /></span>
-              Live
-            </span>
-          </Show>
-          <Show when={isReg()}>
-            <span class={`text-[10px] font-bold ${style().accent}`}>Open</span>
-          </Show>
-          <Show when={!props.isLive && !isReg()}>
-            <span class="text-[10px] text-gray-500">
-              {new Date(t().starts_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-            </span>
-          </Show>
-        </div>
+        <Show when={props.isLive}>
+          <span class="flex items-center gap-1 text-[10px] text-green-400 font-bold">
+            <span class="relative flex h-1.5 w-1.5"><span class="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75" /><span class="relative rounded-full h-1.5 w-1.5 bg-green-500" /></span>
+            Live
+          </span>
+        </Show>
+        <Show when={isReg() && canJoin()}>
+          <span class={`text-[10px] font-bold ${style().accent}`}>Open</span>
+        </Show>
+        <Show when={isFull()}>
+          <span class="text-[10px] font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">SOLD OUT</span>
+        </Show>
+        <Show when={!props.isLive && !isReg()}>
+          <span class="text-[10px] text-gray-500">
+            {new Date(t().starts_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          </span>
+        </Show>
       </div>
 
-      {/* Row 2: Account size (prominent) + spots + prize + countdown */}
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <span class="text-sm font-bold text-white">${Number(t().account_size).toLocaleString()}</span>
+      {/* Row 2: Account size + spots + prize + countdown */}
+      <div class="flex items-center justify-between mb-1.5">
+        <div class="flex items-center gap-2 text-xs">
+          <span class="font-bold text-white">${Number(t().account_size).toLocaleString()}</span>
           <span class="text-gray-700">|</span>
-          <span class="text-xs text-gray-400 font-medium">{t().reserved_spots}/{t().total_spots} spots</span>
+          <span class="text-gray-400">{t().reserved_spots}/{t().total_spots} spots</span>
           <span class="text-gray-700">|</span>
-          <span class="text-xs text-yellow-400/80 font-medium">
-            {(t().prizes as any[])[0]?.label || "Prizes"}
+          <span class="text-yellow-400/80">{(t().prizes as any[])[0]?.label || "Prizes"}</span>
+        </div>
+        <FlipClock targetDate={props.isLive ? t().ends_at : t().starts_at} size="sm" />
+      </div>
+
+      {/* Row 3: CTA button (only for registration with spots) */}
+      <Show when={canJoin()}>
+        <div class="flex justify-end">
+          <span class="px-4 py-1.5 bg-green-600 text-white text-[11px] font-bold rounded-md">
+            Join — ${t().entry_fee}
           </span>
         </div>
-
-        <div class="flex items-center gap-2">
-          <Show when={props.isLive}>
-            <FlipClock targetDate={t().ends_at} size="sm" />
-          </Show>
-          <Show when={isReg() && !props.isLive}>
-            <FlipClock targetDate={t().starts_at} size="sm" />
-          </Show>
-          <Show when={!props.isLive && !isReg()}>
-            <FlipClock targetDate={t().starts_at} size="sm" />
-          </Show>
-
-          <Show when={canJoin()}>
-            <span class="px-3 py-1 bg-green-600 text-white text-[10px] font-bold rounded">
-              Join ${t().entry_fee}
-            </span>
-          </Show>
-        </div>
-      </div>
+      </Show>
     </A>
   );
 }
