@@ -1,7 +1,7 @@
 import { createResource, createSignal, onCleanup, onMount, For, Show, createMemo } from "solid-js";
 import { A } from "@solidjs/router";
 import { Title } from "@solidjs/meta";
-import { fetchTournaments, fetchRankings } from "../services/api";
+import { fetchTournaments, fetchRankings, fetchHallOfFame, fetchRecentWinners } from "../services/api";
 import type { Tournament } from "../types/tournament";
 import Header from "../components/layout/Header";
 import FlipClock from "../components/tournament/FlipClock";
@@ -15,6 +15,8 @@ export default function Home() {
   const [registering] = createResource(() => fetchTournaments("registration"));
   const [scheduled] = createResource(() => fetchTournaments("scheduled"));
   const [finished] = createResource(() => fetchTournaments("finished"));
+  const [hallOfFame] = createResource(fetchHallOfFame);
+  const [recentWinners] = createResource(fetchRecentWinners);
 
   // ═══════════════════════════════════════════════════════════════════════
   // STATE MACHINE for home slot selection
@@ -133,14 +135,14 @@ export default function Home() {
                 <PrizeVaultBox tournaments={[...(active() || []), ...(registering() || []), ...(scheduled() || [])]} />
               </div>
 
-              {/* Box 3: small — Hall of Fame */}
+              {/* Box 3: small — Hall of Fame (real data from API) */}
               <div class="lg:col-span-2">
-                <HallOfFameMiniBox />
+                <HallOfFameMiniBox entries={hallOfFame() || []} />
               </div>
 
-              {/* Box 4: small — Recent Results */}
+              {/* Box 4: small — Recent Winners (real podium from API) */}
               <div class="lg:col-span-2">
-                <RecentResultsBox finished={archivedFinished()} />
+                <RecentWinnersBox winners={recentWinners() || []} />
               </div>
             </div>
           </div>
@@ -657,27 +659,74 @@ function StatRow(props: { icon: string; value: string; label: string; color: str
 // HALL OF FAME MINI — compact version for the showcase row
 // ═══════════════════════════════════════════════════════════════════════════
 
-function HallOfFameMiniBox() {
+function HallOfFameMiniBox(props: { entries: any[] }) {
   return (
     <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full p-5">
-      <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-3">How It Works</h2>
-      <div class="space-y-3">
-        <div class="flex items-start gap-2">
-          <span class="w-5 h-5 rounded-full bg-green-600/20 border border-green-600/30 flex items-center justify-center text-[10px] font-bold text-green-400 flex-shrink-0">1</span>
-          <p class="text-xs text-gray-400">Join a tournament for a small entry fee</p>
+      <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em] mb-3">Hall of Fame</h2>
+      <Show when={props.entries.length > 0} fallback={
+        <p class="text-xs text-gray-700 py-4 text-center">Winners appear after first tournament</p>
+      }>
+        <div class="space-y-1">
+          <For each={props.entries.slice(0, 5)}>
+            {(entry, i) => (
+              <div class="flex items-center gap-2 py-1.5 rounded hover:bg-white/[0.03] transition">
+                <span class={`w-5 text-center text-[11px] font-bold ${
+                  i() === 0 ? "text-yellow-400" :
+                  i() === 1 ? "text-gray-300" :
+                  i() === 2 ? "text-orange-400" :
+                  "text-gray-600"
+                }`}>
+                  {i() + 1}
+                </span>
+                <span class="flex-1 text-xs text-gray-300 truncate">{entry.nickname}</span>
+                <div class="text-right">
+                  <span class="text-[10px] text-green-400 font-bold">{entry.wins_count}w</span>
+                  <Show when={Number(entry.cash_earned) > 0}>
+                    <span class="text-[9px] text-gray-600 ml-1">${entry.cash_earned}</span>
+                  </Show>
+                </div>
+              </div>
+            )}
+          </For>
         </div>
-        <div class="flex items-start gap-2">
-          <span class="w-5 h-5 rounded-full bg-blue-600/20 border border-blue-600/30 flex items-center justify-center text-[10px] font-bold text-blue-400 flex-shrink-0">2</span>
-          <p class="text-xs text-gray-400">Trade crypto with your tournament account</p>
-        </div>
-        <div class="flex items-start gap-2">
-          <span class="w-5 h-5 rounded-full bg-yellow-600/20 border border-yellow-600/30 flex items-center justify-center text-[10px] font-bold text-yellow-400 flex-shrink-0">3</span>
-          <p class="text-xs text-gray-400">Top traders win cash, challenges, and more</p>
-        </div>
+      </Show>
+    </div>
+  );
+}
+
+function RecentWinnersBox(props: { winners: any[] }) {
+  return (
+    <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full">
+      <div class="flex items-center justify-between px-5 pt-5 pb-3">
+        <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">Recent Winners</h2>
       </div>
-      <A href="/how-it-works" class="block mt-3 text-[10px] text-green-500 hover:text-green-400 transition">
-        Learn more
-      </A>
+      <Show when={props.winners.length > 0} fallback={
+        <div class="text-center py-10 text-gray-700 text-xs">No results yet</div>
+      }>
+        <div>
+          <For each={props.winners}>
+            {(w) => (
+              <A
+                href={`/tournaments/${w.tournament_slug}`}
+                class="flex items-center gap-2 px-4 py-2 border-b border-[#1a1a1a] hover:bg-white/[0.02] transition"
+              >
+                <span class={`text-sm ${
+                  w.final_rank === 1 ? "text-yellow-400" :
+                  w.final_rank === 2 ? "text-gray-300" :
+                  "text-orange-400"
+                }`}>
+                  #{w.final_rank}
+                </span>
+                <span class="flex-1 text-xs text-gray-300 truncate">{w.nickname}</span>
+                <div class="text-right">
+                  <p class="text-[10px] text-green-400 font-medium">{w.prize_label}</p>
+                  <p class="text-[9px] text-gray-600">{w.tournament_name}</p>
+                </div>
+              </A>
+            )}
+          </For>
+        </div>
+      </Show>
     </div>
   );
 }

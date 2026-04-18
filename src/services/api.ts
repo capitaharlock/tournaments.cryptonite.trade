@@ -27,6 +27,14 @@ export async function fetchTournament(slug: string): Promise<Tournament> {
   return get(`/v1/tournaments/${slug}`);
 }
 
+export async function fetchHallOfFame(): Promise<any[]> {
+  return get("/v1/tournaments/hall-of-fame");
+}
+
+export async function fetchRecentWinners(): Promise<any[]> {
+  return get("/v1/tournaments/recent-winners");
+}
+
 /**
  * Fetch tournament rankings.
  *
