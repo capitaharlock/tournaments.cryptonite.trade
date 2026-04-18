@@ -28,7 +28,8 @@ export default function TournamentDetail() {
     const id = tournament()?.id;
     if (!id) return;
     try {
-      const data = await fetchRankings(id, 100);
+      const useLive = tournament()?.status === "active";
+      const data = await fetchRankings(id, 100, 0, useLive);
       // reconcile merges by entry_id: same row => same object ref => <For> keeps children mounted
       setRankingsStore("list", reconcile(data || [], { key: "entry_id", merge: true }));
       setHasLoadedOnce(true);
