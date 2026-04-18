@@ -85,8 +85,8 @@ export default function Home() {
       <Header />
 
       <div class="min-h-screen bg-[#1a1a1a]">
-        {/* ═══ Tournament Friday banner ═══ */}
-        <TournamentFridayBanner />
+        {/* ═══ Next tournament countdown banner ═══ */}
+        <NextTournamentBanner upcoming={upcomingPool()} />
 
         {/* ═══════════════════════════════════════════════════════════
             TOP SECTION — Live tournaments (3 columns)
@@ -146,6 +146,29 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* ═══════════════════════════════════════════════════════════
+            BOTTOM SECTION — Finished Tournaments (grid of 4 cols, up to 8)
+        ═══════════════════════════════════════════════════════════ */}
+        <Show when={(finished() || []).length > 0}>
+          <div class="px-4 py-8">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <p class="text-[10px] text-gray-600 uppercase tracking-[0.15em] font-bold mb-0.5">Completed</p>
+                <h2 class="text-lg font-bold text-white">Recent Tournaments</h2>
+              </div>
+              <A href="/schedule" class="text-xs text-green-500 hover:text-green-400 transition">View all</A>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <For each={(finished() || [])
+                .sort((a, b) => new Date(b.ends_at).getTime() - new Date(a.ends_at).getTime())
+                .slice(0, 8)
+              }>
+                {(t) => <FinishedCard tournament={t} />}
+              </For>
+            </div>
+          </div>
+        </Show>
       </div>
     </>
   );
@@ -300,14 +323,17 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
 
 function AgendaRow(props: { tournament: Tournament; isLive?: boolean; isRegistering?: boolean }) {
   const t = () => props.tournament;
-  const icon = () => t().name.includes("Sprint") ? "⚡" : t().name.includes("Classic") ? "🏆" : "🏔️";
-  const startDate = () => new Date(t().starts_at);
+  const icon = () => t().name.includes("Sprint") ? "\u26A1" : t().name.includes("Classic") ? "\uD83C\uDFC6" : "\uD83C\uDFD4\uFE0F";
   const durationDays = () => Math.round((new Date(t().ends_at).getTime() - new Date(t().starts_at).getTime()) / 86400000);
   const isReg = () => t().status === "registration";
   const canJoin = () => isReg() && t().spots_available > 0;
+  const style = () => getStatusStyle(t().status);
 
   return (
-    <div class="px-4 py-3 border-b border-[#1a1a1a] hover:bg-[#0d0d0d] transition">
+    <A
+      href={canJoin() ? `/checkout/${t().slug}` : `/tournaments/${t().slug}`}
+      class="block px-4 py-3 border-b border-[#1a1a1a] hover:bg-white/[0.03] transition cursor-pointer"
+    >
       {/* Row 1: Icon + Name + Duration + Status */}
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2">
@@ -317,30 +343,30 @@ function AgendaRow(props: { tournament: Tournament; isLive?: boolean; isRegister
         </div>
         <div class="flex items-center gap-2">
           <Show when={props.isLive}>
-            <span class="flex items-center gap-1 text-[10px] text-green-400">
+            <span class="flex items-center gap-1 text-[10px] text-green-400 font-bold">
               <span class="relative flex h-1.5 w-1.5"><span class="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75" /><span class="relative rounded-full h-1.5 w-1.5 bg-green-500" /></span>
               Live
             </span>
           </Show>
           <Show when={isReg()}>
-            <span class="text-[10px] text-green-400">Open</span>
+            <span class={`text-[10px] font-bold ${style().accent}`}>Open</span>
           </Show>
           <Show when={!props.isLive && !isReg()}>
-            <span class="text-[10px] text-gray-600">
-              {startDate().toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            <span class="text-[10px] text-gray-500">
+              {new Date(t().starts_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>
           </Show>
         </div>
       </div>
 
-      {/* Row 2: Stats + Prizes + CTA */}
+      {/* Row 2: Account size (prominent) + spots + prize + countdown */}
       <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3 text-[10px] text-gray-500">
-          <span>${Number(t().account_size).toLocaleString()}</span>
-          <span class="text-gray-700">•</span>
-          <span>{t().reserved_spots}/{t().total_spots} spots</span>
-          <span class="text-gray-700">•</span>
-          <span class="text-yellow-400/70">
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-bold text-white">${Number(t().account_size).toLocaleString()}</span>
+          <span class="text-gray-700">|</span>
+          <span class="text-xs text-gray-400 font-medium">{t().reserved_spots}/{t().total_spots} spots</span>
+          <span class="text-gray-700">|</span>
+          <span class="text-xs text-yellow-400/80 font-medium">
             {(t().prizes as any[])[0]?.label || "Prizes"}
           </span>
         </div>
@@ -353,22 +379,17 @@ function AgendaRow(props: { tournament: Tournament; isLive?: boolean; isRegister
             <FlipClock targetDate={t().starts_at} size="sm" />
           </Show>
           <Show when={!props.isLive && !isReg()}>
-            <FlipClock targetDate={t().registration_opens_at} size="sm" />
+            <FlipClock targetDate={t().starts_at} size="sm" />
           </Show>
 
           <Show when={canJoin()}>
-            <A href={`/checkout/${t().slug}`} class="px-3 py-1 bg-green-600 hover:bg-green-500 text-white text-[10px] font-bold rounded transition">
+            <span class="px-3 py-1 bg-green-600 text-white text-[10px] font-bold rounded">
               Join ${t().entry_fee}
-            </A>
-          </Show>
-          <Show when={!canJoin()}>
-            <A href={`/tournaments/${t().slug}`} class="text-[10px] text-gray-600 hover:text-white transition">
-              {props.isLive ? "Watch →" : "Details →"}
-            </A>
+            </span>
           </Show>
         </div>
       </div>
-    </div>
+    </A>
   );
 }
 
@@ -760,48 +781,69 @@ function HallOfFameMiniBox() {
 
 
 // ═══════════════════════════════════════════════════════════════════════════
+// FINISHED CARD — compact card for completed tournaments grid
+// ═══════════════════════════════════════════════════════════════════════════
+
+function FinishedCard(props: { tournament: Tournament }) {
+  const t = () => props.tournament;
+  const icon = () => t().name.includes("Sprint") ? "\u26A1" : t().name.includes("Classic") ? "\uD83C\uDFC6" : "\uD83C\uDFD4\uFE0F";
+
+  return (
+    <A
+      href={`/tournaments/${t().slug}`}
+      class="bg-black border border-[#222] rounded-xl overflow-hidden hover:border-gray-700 transition group"
+    >
+      <div class="bg-gradient-to-r from-gray-800/30 to-gray-700/10 px-4 py-3">
+        <div class="flex items-center justify-between mb-1">
+          <div class="flex items-center gap-1.5">
+            <span class="text-sm">{icon()}</span>
+            <span class="text-sm font-bold text-white group-hover:text-green-400 transition">{t().name}</span>
+          </div>
+          <span class="text-[9px] text-gray-600 bg-gray-800 px-1.5 py-0.5 rounded">Finished</span>
+        </div>
+        <p class="text-[10px] text-gray-500">
+          Ended {new Date(t().ends_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+        </p>
+      </div>
+      <div class="px-4 py-2.5 flex items-center justify-between">
+        <div class="flex items-center gap-3 text-xs">
+          <span class="text-white font-bold">${Number(t().account_size).toLocaleString()}</span>
+          <span class="text-gray-600">{t().total_spots} players</span>
+        </div>
+        <span class="text-[10px] text-yellow-400/70">{(t().prizes as any[])[0]?.label || ""}</span>
+      </div>
+    </A>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // TOURNAMENT FRIDAY BANNER — Phase 10d branding
 // Shows a prominent strip on Fridays (and the 24h leading up) to highlight
 // that new Sprint + Classic tournaments kick off at 22:00 UTC.
 // ═══════════════════════════════════════════════════════════════════════════
 
-function TournamentFridayBanner() {
+function NextTournamentBanner(props: { upcoming: Tournament[] }) {
   const [now, setNow] = createSignal(new Date());
   let interval: any;
-  onMount(() => {
-    interval = setInterval(() => setNow(new Date()), 1000);
-  });
+  onMount(() => { interval = setInterval(() => setNow(new Date()), 1000); });
   onCleanup(() => clearInterval(interval));
 
-  // Compute next Friday 22:00 UTC
-  const nextFridayKickoff = createMemo(() => {
-    const n = now();
-    const utcDay = n.getUTCDay(); // 0=Sun..6=Sat
-    const daysUntilFriday = (5 - utcDay + 7) % 7;
-    const target = new Date(Date.UTC(
-      n.getUTCFullYear(),
-      n.getUTCMonth(),
-      n.getUTCDate() + daysUntilFriday,
-      22, 0, 0, 0
-    ));
-    if (target.getTime() < n.getTime()) {
-      target.setUTCDate(target.getUTCDate() + 7);
-    }
-    return target;
+  // Soonest upcoming tournament (registration or scheduled)
+  const next = createMemo(() => {
+    const sorted = [...props.upcoming].sort(
+      (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
+    );
+    return sorted[0] || null;
   });
 
-  const diff = createMemo(() => nextFridayKickoff().getTime() - now().getTime());
-  const isThisWeek = () => diff() < 7 * 86400000;
-  const isImminentDay = () => diff() < 28 * 3600000; // within 28h
-  const isLive = () => {
-    // Friday 22:00 UTC to Sunday 22:00 UTC = "kickoff window"
-    const elapsed = now().getTime() - nextFridayKickoff().getTime();
-    return elapsed < 0 && elapsed > -2 * 86400000;
-  };
+  const diff = createMemo(() => {
+    if (!next()) return 0;
+    return new Date(next()!.starts_at).getTime() - now().getTime();
+  });
 
   const remaining = createMemo(() => {
     const ms = diff();
-    if (ms < 0) return null;
+    if (ms <= 0) return null;
     return {
       d: Math.floor(ms / 86400000),
       h: Math.floor((ms % 86400000) / 3600000),
@@ -810,10 +852,12 @@ function TournamentFridayBanner() {
     };
   });
 
+  const isImminent = () => diff() > 0 && diff() < 48 * 3600000;
+
   return (
-    <Show when={isThisWeek()}>
+    <Show when={next() && diff() > 0}>
       <div class={`relative overflow-hidden border-b border-[#1f1f1f] ${
-        isImminentDay()
+        isImminent()
           ? "bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-400/30"
           : "bg-gradient-to-r from-green-600/15 via-emerald-500/10 to-teal-400/15"
       }`}>
@@ -826,20 +870,22 @@ function TournamentFridayBanner() {
             </span>
             <div>
               <p class="text-[10px] text-green-400 font-black uppercase tracking-[0.15em]">
-                Tournament Friday
+                {next()!.status === "registration" ? "Registration Open" : "Coming Up"}
               </p>
               <p class="text-sm text-white font-bold">
-                Sprint + Classic kick off every Friday at 22:00 UTC
+                {next()!.name} — ${Number(next()!.account_size).toLocaleString()} account
               </p>
             </div>
           </div>
           <Show when={remaining()}>
             <div class="flex items-center gap-2 text-xs">
-              <span class="text-gray-400">Next kickoff in</span>
+              <span class="text-gray-400">Starts in</span>
               <div class="flex gap-1 font-mono font-bold">
-                <span class="bg-black/40 border border-green-500/30 text-green-300 px-2 py-1 rounded">
-                  {remaining()!.d}d
-                </span>
+                <Show when={remaining()!.d > 0}>
+                  <span class="bg-black/40 border border-green-500/30 text-green-300 px-2 py-1 rounded">
+                    {remaining()!.d}d
+                  </span>
+                </Show>
                 <span class="bg-black/40 border border-green-500/30 text-green-300 px-2 py-1 rounded">
                   {String(remaining()!.h).padStart(2, "0")}h
                 </span>
@@ -850,8 +896,9 @@ function TournamentFridayBanner() {
                   {String(remaining()!.s).padStart(2, "0")}s
                 </span>
               </div>
-              <A href="/schedule" class="ml-2 px-3 py-1 bg-green-600 hover:bg-green-500 text-white font-bold text-[11px] rounded transition">
-                Get Your Spot →
+              <A href={next()!.status === "registration" ? `/checkout/${next()!.slug}` : `/tournaments/${next()!.slug}`}
+                class="ml-2 px-3 py-1 bg-green-600 hover:bg-green-500 text-white font-bold text-[11px] rounded transition">
+                {next()!.status === "registration" ? "Get Your Spot" : "View Details"}
               </A>
             </div>
           </Show>
