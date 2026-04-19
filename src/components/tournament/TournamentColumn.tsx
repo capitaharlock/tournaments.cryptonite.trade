@@ -75,6 +75,7 @@ export default function TournamentColumn(props: Props) {
           rankings={rankings() || []}
           tournamentSlug={t().slug}
           maxRows={10}
+          preRace={isRegistering()}
         />
       </div>
 

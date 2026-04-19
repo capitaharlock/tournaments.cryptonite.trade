@@ -8,6 +8,8 @@ interface Props {
   maxRows?: number;
   accountSize?: number;
   prizes?: PrizeBand[];
+  /** True when tournament hasn't started yet (registration/scheduled) */
+  preRace?: boolean;
 }
 
 const LETTER_COLORS = [
@@ -115,10 +117,12 @@ export default function MiniRanking(props: Props) {
             >
               {/* Rank badge */}
               <div class={`w-9 h-6 rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0 border ${
-                entry.rank === 1
+                props.preRace
+                  ? "bg-[#1a1a1a] border-gray-700/50 text-gray-500"
+                  : entry.rank === 1
                   ? "bg-yellow-400/15 border-yellow-400/40 text-yellow-400 shadow-sm shadow-yellow-400/10"
                   : entry.rank === 2
-                  ? "bg-gray-300/10 border-gray-400/30 text-gray-300 shadow-sm shadow-gray-400/10"
+                  ? "bg-slate-300/12 border-slate-300/40 text-slate-300 shadow-sm shadow-slate-300/10"
                   : entry.rank === 3
                   ? "bg-orange-400/12 border-orange-400/30 text-orange-400 shadow-sm shadow-orange-400/10"
                   : entry.rank <= 10

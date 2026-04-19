@@ -222,7 +222,7 @@ export default function TournamentDetail() {
                         </div>
                       }
                     >
-                      <RankingTable rankings={rankings()} prizes={isReg() ? [] : (t().prizes as any)} tournamentId={t().id} />
+                      <RankingTable rankings={rankings()} prizes={isReg() ? [] : (t().prizes as any)} tournamentId={t().id} preRace={isReg() || isScheduled()} />
                     </Show>
                   </div>
                 </div>

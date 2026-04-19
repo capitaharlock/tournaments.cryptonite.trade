@@ -232,6 +232,7 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
             tournamentSlug={t().slug}
             maxRows={props.maxRanks}
             accountSize={Number(t().account_size)} prizes={t().prizes as any}
+            preRace={isReg() || isScheduled()}
           />
         </Show>
       </div>

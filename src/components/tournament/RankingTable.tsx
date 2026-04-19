@@ -6,6 +6,8 @@ interface Props {
   prizes: PrizeBand[];
   /** Tournament UUID — kept for compatibility, no longer used for fetching */
   tournamentId?: string;
+  /** True when tournament hasn't started yet (registration/scheduled) */
+  preRace?: boolean;
 }
 
 const LETTER_COLORS = [
@@ -112,10 +114,12 @@ export default function RankingTable(props: Props) {
                   >
                     <td class="py-2 px-2">
                       <div class={`w-9 h-6 rounded-md flex items-center justify-center text-[10px] font-bold border ${
-                        entry.rank === 1
+                        props.preRace
+                          ? "bg-[#1a1a1a] border-gray-700/50 text-gray-500"
+                          : entry.rank === 1
                           ? "bg-yellow-400/15 border-yellow-400/40 text-yellow-400"
                           : entry.rank === 2
-                          ? "bg-gray-300/10 border-gray-400/30 text-gray-300"
+                          ? "bg-slate-300/12 border-slate-300/40 text-slate-300"
                           : entry.rank === 3
                           ? "bg-orange-400/12 border-orange-400/30 text-orange-400"
                           : "bg-[#1a1a1a] border-gray-700/50 text-gray-400"
