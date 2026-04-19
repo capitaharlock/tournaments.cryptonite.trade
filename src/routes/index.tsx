@@ -332,7 +332,7 @@ function AgendaRow(props: { tournament: Tournament; isLive?: boolean; isRegister
 
   return (
     <A
-      href={canJoin() ? `/checkout/${t().slug}` : `/tournaments/${t().slug}`}
+      href={`/tournaments/${t().slug}`}
       class="block px-4 py-3 border-b border-[#1a1a1a] hover:bg-white/[0.03] transition cursor-pointer"
     >
       {/* Row 1: Icon + Name + Status badge */}
@@ -375,10 +375,11 @@ function AgendaRow(props: { tournament: Tournament; isLive?: boolean; isRegister
 
       {/* Row 3: CTA button (only for registration with spots) */}
       <Show when={canJoin()}>
-        <div class="flex justify-end">
-          <span class="px-4 py-1.5 bg-green-600 text-white text-[11px] font-bold rounded-md">
+        <div class="flex justify-end" onClick={(e: any) => e.preventDefault()}>
+          <A href={`/checkout/${t().slug}`}
+            class="px-4 py-1.5 bg-green-600 hover:bg-green-500 text-white text-[11px] font-bold rounded-md transition">
             Join — ${t().entry_fee}
-          </span>
+          </A>
         </div>
       </Show>
     </A>
