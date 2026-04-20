@@ -32,7 +32,7 @@ export default function TournamentCard(props: Props) {
         </span>
       </div>
 
-      <div class="grid grid-cols-3 gap-3 text-sm mb-4">
+      <div class="grid grid-cols-3 gap-3 text-sm mb-2">
         <div>
           <p class="text-gray-500 text-xs">Account</p>
           <p class="text-white font-medium">${t().account_size.toLocaleString()}</p>
@@ -46,6 +46,16 @@ export default function TournamentCard(props: Props) {
           <p class="text-white font-medium">
             {t().reserved_spots}/{t().total_spots}
           </p>
+        </div>
+      </div>
+      <div class="flex gap-3 text-sm mb-4">
+        <div>
+          <p class="text-gray-500 text-xs">Max DD</p>
+          <p class="text-red-400 font-medium">{t().max_drawdown_percentage}%</p>
+        </div>
+        <div>
+          <p class="text-gray-500 text-xs">Daily DD</p>
+          <p class="text-red-400 font-medium">{t().max_daily_drawdown_percentage}%</p>
         </div>
       </div>
 
