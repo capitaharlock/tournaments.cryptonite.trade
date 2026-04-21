@@ -495,20 +495,46 @@ function UpcomingBox(props: { rest: Tournament[]; registering: Tournament[]; sch
 // PRIZE VAULT — total prize pool + breakdown + trust signal
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ── Prize valuation helpers ──────────────────────────────────────────
+// Real market value of each prize type in USD.
+// Challenge pricing: $5K → $50, $10K → $125, $25K → $312, $50K → $625
+// Qualify: half of challenge (non-split, lower-tier graduation path)
+// Retry: equals the tournament entry fee saved
+const challengePrice = (size: number): number => Math.round(size * 0.0125);
+const qualifyPrice = (size: number): number => Math.round(size * 0.006);
+
 function PrizeVaultBox(props: { tournaments: Tournament[] }) {
-  // Calculate from real tournament data
+  // Calculate from real tournament data with proper valuations
   const stats = createMemo(() => {
-    let cash = 0, challenges = 0, qualify = 0, retries = 0;
+    let cash = 0;            // total cash $ across all tournaments
+    let challenges = 0;      // count of free challenges
+    let qualify = 0;         // count of free qualify accounts
+    let retries = 0;         // count of retry vouchers
+    let challengeValue = 0;  // total $ value of challenges
+    let qualifyValue = 0;    // total $ value of qualify accounts
+    let retryValue = 0;      // total $ value of retries
+
     for (const t of props.tournaments) {
+      const entryFee = Number(t.entry_fee) || 0;
       for (const p of (t.prizes as any[]) || []) {
         const count = (p.rank_to || 0) - (p.rank_from || 0) + 1;
-        if (p.type === "cash") cash += (p.value || 0) * count;
-        else if (p.type === "challenge") challenges += count;
-        else if (p.type === "qualify") qualify += count;
-        else if (p.type === "retry") retries += count;
+        const size = Number(p.account_size || 0);
+        if (p.type === "cash") {
+          cash += (p.value || 0) * count;
+        } else if (p.type === "challenge") {
+          challenges += count;
+          challengeValue += challengePrice(size) * count;
+        } else if (p.type === "qualify") {
+          qualify += count;
+          qualifyValue += qualifyPrice(size) * count;
+        } else if (p.type === "retry") {
+          retries += count;
+          retryValue += entryFee * count;
+        }
       }
     }
-    return { cash, challenges, qualify, retries, total: cash + challenges * 100 + qualify * 50 };
+    const total = cash + challengeValue + qualifyValue + retryValue;
+    return { cash, challenges, qualify, retries, challengeValue, qualifyValue, retryValue, total };
   });
 
   return (
@@ -525,10 +551,10 @@ function PrizeVaultBox(props: { tournaments: Tournament[] }) {
         </div>
 
         <div class="grid grid-cols-4 gap-2 mb-4">
-          <VaultStat icon="cash" label="Cash" value={`$${stats().cash}`} />
-          <VaultStat icon="challenge" label="Challenges" value={`${stats().challenges}x`} />
-          <VaultStat icon="qualify" label="Qualify" value={`${stats().qualify}x`} />
-          <VaultStat icon="retry" label="Retries" value={`${stats().retries}x`} />
+          <VaultStat icon="cash" label="Cash" value={`$${stats().cash.toLocaleString()}`} subtext={`${stats().cash > 0 ? "cash pool" : "—"}`} />
+          <VaultStat icon="challenge" label="Challenges" value={`${stats().challenges}x`} subtext={stats().challengeValue > 0 ? `$${stats().challengeValue.toLocaleString()}` : "—"} />
+          <VaultStat icon="qualify" label="Qualify" value={`${stats().qualify}x`} subtext={stats().qualifyValue > 0 ? `$${stats().qualifyValue.toLocaleString()}` : "—"} />
+          <VaultStat icon="retry" label="Retries" value={`${stats().retries}x`} subtext={stats().retryValue > 0 ? `$${stats().retryValue.toLocaleString()}` : "—"} />
         </div>
 
         <div class="bg-[#0a0a0a] rounded-lg px-4 py-3 flex items-center gap-2 border border-gray-800/60">
@@ -545,7 +571,7 @@ function PrizeVaultBox(props: { tournaments: Tournament[] }) {
   );
 }
 
-function VaultStat(props: { icon: string; label: string; value: string }) {
+function VaultStat(props: { icon: string; label: string; value: string; subtext?: string }) {
   const iconColor: Record<string, string> = {
     cash: "text-yellow-400",
     challenge: "text-blue-400",
@@ -557,6 +583,7 @@ function VaultStat(props: { icon: string; label: string; value: string }) {
       <p class={`text-xs ${iconColor[props.icon] || "text-gray-400"} mb-0.5`}>◆</p>
       <p class="text-sm font-bold text-white">{props.value}</p>
       <p class="text-[9px] text-gray-600">{props.label}</p>
+      {props.subtext && <p class="text-[9px] text-gray-500 mt-0.5 font-mono">{props.subtext}</p>}
     </div>
   );
 }
