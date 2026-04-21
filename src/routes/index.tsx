@@ -374,11 +374,12 @@ function AgendaRow(props: { tournament: Tournament; isLive?: boolean; isRegister
         <FlipClock targetDate={props.isLive ? t().ends_at : t().starts_at} size="sm" />
       </div>
 
-      {/* Row 3: CTA button (only for registration with spots) */}
+      {/* Row 3: CTA button (only for registration with spots)
+          Aligned to the right, matching the countdown's right edge */}
       <Show when={canJoin()}>
-        <div class="flex justify-end" onClick={(e: any) => e.preventDefault()}>
+        <div class="flex justify-end mt-2.5" onClick={(e: any) => e.preventDefault()}>
           <A href={`/checkout/${t().slug}`}
-            class="px-4 py-1.5 bg-green-600 hover:bg-green-500 text-white text-[11px] font-bold rounded-md transition">
+            class="inline-block px-5 py-1.5 bg-green-600 hover:bg-green-500 text-white text-[11px] font-bold rounded-md transition focus:outline-none focus:ring-2 focus:ring-green-400/50">
             Join — ${t().entry_fee}
           </A>
         </div>
