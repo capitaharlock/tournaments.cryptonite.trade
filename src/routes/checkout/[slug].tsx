@@ -300,14 +300,20 @@ export default function Checkout() {
     return false;
   };
 
-  /** Load PayPal SDK script */
+  /** Load PayPal SDK script. Client ID from env var — never hardcode. */
   const loadPayPalSdk = (): Promise<void> => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       if ((window as any).paypal) { resolve(); return; }
-      const clientId = "AbYyt9Z5BJqXMeKRRVayaZGQ4lRLDFMnU0SsD91GFG_rDK6Vo1WyjOXLXz9QYzCNnO_anwnXdSoVB34D";
+      const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
+      if (!clientId) {
+        console.error("VITE_PAYPAL_CLIENT_ID not configured");
+        reject(new Error("PayPal not configured"));
+        return;
+      }
       const script = document.createElement("script");
       script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&intent=capture`;
       script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Failed to load PayPal SDK"));
       document.head.appendChild(script);
     });
   };
