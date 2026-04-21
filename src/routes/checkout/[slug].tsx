@@ -8,6 +8,11 @@ import FlipClock from "../../components/tournament/FlipClock";
 import TournamentProgress from "../../components/tournament/TournamentProgress";
 import { getStatusStyle } from "../../lib/statusStyles";
 import { getSSOToken, setSSOToken } from "../../lib/sso";
+import CryptoNetworkSelector from "../../components/checkout/components/CryptoNetworkSelector";
+import CryptoTokenSelector from "../../components/checkout/components/CryptoTokenSelector";
+import PaymentMonitor from "../../components/checkout/components/PaymentMonitor";
+import type { PaymentNetwork, PaymentToken, PaymentData } from "../../components/checkout/types/checkout.types";
+import { getCurrencyCode } from "../../components/checkout/utils/payment-config";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:7002";
 
@@ -165,8 +170,12 @@ export default function Checkout() {
   };
 
   const [intentId, setIntentId] = createSignal<string | null>(null);
-  const [cryptoPayData, setCryptoPayData] = createSignal<any>(null);
+  const [cryptoPayData, setCryptoPayData] = createSignal<PaymentData | null>(null);
   const [paypalLoading, setPaypalLoading] = createSignal(false);
+
+  // ── Crypto network + token selection ──────────────────────────────
+  const [selectedNetwork, setSelectedNetwork] = createSignal<PaymentNetwork>('ethereum');
+  const [selectedToken, setSelectedToken] = createSignal<PaymentToken>('usdc');
 
   /** Start payment: create intent via API, then delegate to PayPal or crypto UI */
   const handleStartPayment = async () => {
@@ -218,14 +227,15 @@ export default function Checkout() {
     }
   };
 
-  /** Create crypto payment intent after user picks token+network */
-  const handleCryptoCreate = async (payCurrency: string) => {
+  /** Create crypto payment intent using selected network + token */
+  const handleCryptoCreate = async () => {
     if (!jwt() || !tournament()) return;
     setLoading(true);
     setError(null);
 
     try {
       const t = tournament()!;
+      const payCurrency = getCurrencyCode(selectedToken(), selectedNetwork());
       const res = await fetch(`${API_URL}/v1/tournaments/${t.id}/create-payment-intent`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${jwt()}` },
@@ -248,11 +258,17 @@ export default function Checkout() {
         return;
       }
 
+      const amountUsd = Number(intent.amount) || Number(tournament()?.entry_fee) || 0;
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 min
+
       setCryptoPayData({
         paymentId: intent.nowpayments_payment_id,
         payAddress: intent.nowpayments_pay_address,
         payAmount: intent.nowpayments_pay_amount,
         payCurrency: intent.nowpayments_pay_currency,
+        priceAmount: amountUsd,
+        network: selectedNetwork(),
+        expiresAt,
       });
     } catch (err: any) {
       setError(err.message || "Crypto payment failed");
@@ -528,81 +544,56 @@ export default function Checkout() {
                         </Show>
 
                         <Show when={paymentMethod() === "crypto"}>
+                          {/* Step 1: network + token selection */}
                           <Show when={!cryptoPayData()}>
-                            {/* Token selection */}
-                            <h2 class="text-xl font-bold text-white mb-4">Choose cryptocurrency</h2>
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-md mb-6">
-                              {[
-                                { id: "btc", label: "BTC", name: "Bitcoin", color: "#F7931A", cur: "btc" },
-                                { id: "eth", label: "ETH", name: "Ether", color: "#627EEA", cur: "eth" },
-                                { id: "sol", label: "SOL", name: "Solana", color: "#9945FF", cur: "sol" },
-                                { id: "usdc", label: "USDC", name: "USD Coin", color: "#2775CA", cur: "usdc" },
-                                { id: "usdt", label: "USDT", name: "Tether", color: "#26A17B", cur: "usdterc20" },
-                              ].map((tk) => (
-                                <button onClick={() => handleCryptoCreate(tk.cur)} disabled={loading()}
-                                  class="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-800 bg-[#0a0a0a] hover:border-gray-600 transition disabled:opacity-50">
-                                  <svg viewBox="0 0 32 32" width="32" height="32">
-                                    <circle cx="16" cy="16" r="16" fill={tk.color}/>
-                                    <text x="16" y="21" text-anchor="middle" fill="#fff" font-size={tk.label.length > 3 ? "9" : "12"} font-weight="700" font-family="sans-serif">{tk.label}</text>
-                                  </svg>
-                                  <span class="text-white text-xs font-bold">{tk.name}</span>
+                            <div class="space-y-5 max-w-2xl">
+                              <CryptoNetworkSelector
+                                selectedNetwork={selectedNetwork()}
+                                onNetworkChange={(net, defaultTok) => {
+                                  setSelectedNetwork(net);
+                                  setSelectedToken(defaultTok);
+                                }}
+                              />
+                              <CryptoTokenSelector
+                                selectedNetwork={selectedNetwork()}
+                                selectedToken={selectedToken()}
+                                onTokenChange={(tok) => setSelectedToken(tok)}
+                              />
+
+                              <Show when={error()}>
+                                <p class="text-red-400 text-sm">{error()}</p>
+                              </Show>
+
+                              <div class="flex gap-3 pt-2">
+                                <button onClick={() => { setStep("method"); setError(null); }}
+                                  class="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition text-sm">
+                                  \u2190 Back
                                 </button>
-                              ))}
-                            </div>
-                            <Show when={loading()}>
-                              <div class="flex items-center gap-3 text-gray-400">
-                                <div class="w-5 h-5 border-2 border-gray-600 border-t-orange-500 rounded-full animate-spin" />
-                                <span class="text-sm">Creating payment...</span>
+                                <button onClick={handleCryptoCreate} disabled={loading()}
+                                  class="px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition text-sm disabled:opacity-50">
+                                  {loading() ? "Creating payment..." : `Continue with ${selectedToken().toUpperCase()}`}
+                                </button>
                               </div>
-                            </Show>
-                            <Show when={error()}>
-                              <p class="text-red-400 text-sm mt-2">{error()}</p>
-                            </Show>
-                            <button onClick={() => { setStep("method"); setError(null); }}
-                              class="mt-4 px-6 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition text-sm">
-                              Back
-                            </button>
+                            </div>
                           </Show>
 
-                          <Show when={cryptoPayData()}>
-                            {/* Payment address + monitor */}
-                            <h2 class="text-xl font-bold text-white mb-2">Send payment</h2>
-                            <div class="bg-[#0a0a0a] border border-gray-800 rounded-xl p-5 max-w-md mb-4">
-                              <div class="flex items-center justify-between mb-3">
-                                <span class="text-sm text-gray-400">Amount</span>
-                                <span class="text-xl font-bold text-green-400">
-                                  {cryptoPayData()!.payAmount} {cryptoPayData()!.payCurrency?.toUpperCase()}
-                                </span>
-                              </div>
-                              <div class="mb-3">
-                                <span class="text-xs text-gray-500 block mb-1">Payment address</span>
-                                <div class="flex items-center gap-2 bg-black rounded-lg px-3 py-2 border border-gray-800">
-                                  <code class="text-xs text-gray-300 break-all flex-1">{cryptoPayData()!.payAddress}</code>
-                                  <button onClick={() => navigator.clipboard.writeText(cryptoPayData()!.payAddress)}
-                                    class="text-xs text-blue-400 hover:text-blue-300 flex-shrink-0">
-                                    Copy
-                                  </button>
-                                </div>
-                              </div>
-                              <p class="text-xs text-yellow-500">Send exactly this amount to the address above. Payment is monitored automatically.</p>
-                            </div>
-
-                            <div class="flex items-center gap-3 text-gray-400 mb-4">
-                              <div class="w-4 h-4 border-2 border-gray-600 border-t-green-500 rounded-full animate-spin" />
-                              <span class="text-sm">Waiting for payment...</span>
-                              <button onClick={async () => { if (await pollCryptoPayment()) return; setError("Payment not confirmed yet. Try again in a moment."); }}
-                                class="text-xs text-blue-400 hover:text-blue-300 ml-auto">
-                                Check now
-                              </button>
-                            </div>
-
-                            <Show when={error()}>
-                              <p class="text-red-400 text-sm mb-4">{error()}</p>
-                            </Show>
-                            <button onClick={() => { setCryptoPayData(null); setError(null); }}
-                              class="px-6 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition text-sm">
-                              Back
-                            </button>
+                          {/* Step 2: payment monitor with QR + address + countdown */}
+                          <Show when={cryptoPayData() && jwt() && tournament() && intentId()}>
+                            <PaymentMonitor
+                              paymentData={cryptoPayData()!}
+                              intentId={intentId()!}
+                              jwt={jwt()!}
+                              tournamentId={tournament()!.id}
+                              onCopyAddress={(addr) => {
+                                navigator.clipboard.writeText(addr);
+                              }}
+                              onBack={() => { setCryptoPayData(null); setError(null); }}
+                              onCancelAndGetNew={() => { setCryptoPayData(null); handleCryptoCreate(); }}
+                              onConfirmed={(entryId, accountId) => {
+                                setEntryResult({ entry_id: entryId, trading_account_id: accountId });
+                                setStep("success");
+                              }}
+                            />
                           </Show>
                         </Show>
                       </Show>
