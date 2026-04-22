@@ -413,17 +413,21 @@ export default function Checkout() {
               {/* HERO */}
               <DetailHero tournament={t()} />
 
-              {/* MAIN CONTENT — 2 columns */}
+              {/* MAIN CONTENT — 2 columns on desktop.
+                  On mobile the Order Summary sidebar renders ABOVE the
+                  checkout steps (order-1) so the user sees what they
+                  are paying for before scrolling into the auth/payment
+                  flow. On lg+ it stays on the right as a sticky sidebar. */}
               <div class="flex flex-col lg:flex-row gap-4">
 
                 {/* LEFT — Checkout Steps */}
-                <div class="flex-1">
+                <div class="flex-1 order-2 lg:order-1">
                   <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50">
                     <div class="px-5 py-4 border-b border-[#1a1a1a]">
                       <StepIndicator current={step()} />
                     </div>
 
-                    <div class="p-6">
+                    <div class="p-4 sm:p-6">
                       {/* AUTH — transparent login or register */}
                       <Show when={step() === "auth"}>
                         <h2 class="text-xl font-bold text-white mb-1">Enter your email to continue</h2>
@@ -682,11 +686,12 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                {/* RIGHT — Sidebar */}
-                <div class="lg:w-72 flex-shrink-0 flex flex-col gap-4">
+                {/* RIGHT — Sidebar (renders ABOVE the form on mobile) */}
+                <div class="w-full lg:w-72 flex-shrink-0 flex flex-col gap-4 order-1 lg:order-2">
 
-                  {/* Order Summary */}
-                  <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50 sticky top-4">
+                  {/* Order Summary — sticky only on lg; on mobile it sits
+                      above the form as a regular block. */}
+                  <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50 lg:sticky lg:top-4">
                     <div class={`px-4 py-3 border-b border-[#1a1a1a] bg-gradient-to-r ${style().softGradient}`}>
                       <h3 class="text-sm font-bold text-white">Order Summary</h3>
                     </div>
@@ -802,7 +807,7 @@ function DetailHero(props: { tournament: Tournament }) {
         <div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/60 to-transparent" />
 
         <div class="relative px-6 py-5">
-          <div class="flex items-start justify-between gap-6">
+          <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
             <div class="flex-1 min-w-0">
               <p class="text-sm text-white/60 font-medium mb-0.5">
                 Tournament \u2022 {totalDays()} Day {isSprint() ? "Sprint" : isClassic() ? "Classic" : "Marathon"}
@@ -813,7 +818,7 @@ function DetailHero(props: { tournament: Tournament }) {
                   {style().label}
                 </span>
               </p>
-              <h1 class="text-3xl font-black text-white leading-tight drop-shadow-md mb-4">{t().name}</h1>
+              <h1 class="text-xl sm:text-3xl font-black text-white leading-tight drop-shadow-md mb-4">{t().name}</h1>
               <div class="flex items-center gap-2 flex-wrap">
                 {(t().prizes as any[]).map((p: any, i: number) => (
                   <div class={`flex items-center gap-2 rounded-lg px-3 py-2 border ${
