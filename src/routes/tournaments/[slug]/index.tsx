@@ -101,13 +101,16 @@ export default function TournamentDetail() {
         // Dispatch by explicit type (new push events) first, then fall
         // back to the legacy ranking-frame format (no `type` field).
         if (msg.type === "registration") {
-          // Merge count fields into the existing tournament signal so the
-          // whole UI (spots counter, progress bar, CTA) reacts atomically.
+          // Registration state changed: refresh both the tournament (for
+          // spots/counters/CTA) and the participants list so the user sees
+          // the new entry appear in the table without reloading.
           refetchTournament();
+          loadRankings();
           return;
         }
         if (msg.type === "status_change") {
           refetchTournament();
+          loadRankings();
           return;
         }
         if (msg.rankings && Array.isArray(msg.rankings) && msg.rankings.length > 0) {
