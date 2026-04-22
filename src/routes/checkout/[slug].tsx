@@ -8,6 +8,7 @@ import FlipClock from "../../components/tournament/FlipClock";
 import TournamentProgress from "../../components/tournament/TournamentProgress";
 import { getStatusStyle } from "../../lib/statusStyles";
 import { getSSOToken, setSSOToken } from "../../lib/sso";
+import { useUserEntries } from "../../contexts/UserEntries";
 import CryptoNetworkSelector from "../../components/checkout/components/CryptoNetworkSelector";
 import CryptoTokenSelector from "../../components/checkout/components/CryptoTokenSelector";
 import PaymentMonitor from "../../components/checkout/components/PaymentMonitor";
@@ -23,6 +24,18 @@ export default function Checkout() {
   const params = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [tournament] = createResource(() => params.slug, fetchTournament);
+  const userEntries = useUserEntries();
+  // True once we've confirmed (via the user-entries endpoint) that the
+  // logged-in user already has an entry in THIS tournament. Stops the
+  // whole checkout flow and shows a friendly "you're already in" panel
+  // instead of pushing the user into a payment that would 409.
+  const alreadyRegistered = () => {
+    const t = tournament();
+    if (!t) return false;
+    if (userEntries.loading()) return false; // wait until the fetch settles
+    if (!userEntries.userId()) return false; // anonymous visitor — let auth flow run
+    return userEntries.isRegistered(t.id);
+  };
   const [email, setEmail] = createSignal("");
   const [password, setPassword] = createSignal("");
   const [nickname, setNickname] = createSignal("");
@@ -369,6 +382,32 @@ export default function Checkout() {
       <div class="min-h-screen bg-[#1a1a1a]">
         <Show when={tournament()} fallback={<div class="text-center py-16 text-gray-600">Loading...</div>}>
           {(t) => (
+            <Show when={!alreadyRegistered()} fallback={
+              <div class="p-4 max-w-2xl mx-auto pt-12">
+                <DetailHero tournament={t()} />
+                <div class="mt-6 bg-black border border-emerald-500/30 rounded-xl p-8 text-center shadow-xl">
+                  <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/40 mb-4">
+                    <svg class="w-8 h-8 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <h2 class="text-2xl font-bold text-white mb-2">You're already in!</h2>
+                  <p class="text-gray-400 mb-6">
+                    You're registered for <strong class="text-white">{t().name}</strong>. Good luck when it starts.
+                  </p>
+                  <div class="flex gap-3 justify-center flex-wrap">
+                    <A href={`/tournaments/${t().slug}`}
+                      class="inline-flex items-center gap-1.5 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded-lg transition text-sm">
+                      View Tournament →
+                    </A>
+                    <A href="/schedule"
+                      class="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#1a1a1a] hover:bg-[#222] border border-[#333] text-gray-300 font-bold rounded-lg transition text-sm">
+                      See other tournaments
+                    </A>
+                  </div>
+                </div>
+              </div>
+            }>
             <div class="p-4 max-w-6xl mx-auto space-y-4">
 
               {/* HERO */}
@@ -731,6 +770,7 @@ export default function Checkout() {
                 </div>
               </div>
             </div>
+            </Show>
           )}
         </Show>
       </div>
