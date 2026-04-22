@@ -85,14 +85,14 @@ export default function RankingTable(props: Props) {
       <table class="w-full text-sm">
         <thead>
           <tr class="text-gray-500 text-xs border-b border-gray-800">
-            <th class="py-2 px-3 text-left w-12">#</th>
+            <th class="py-2 px-2 sm:px-3 text-left w-12">#</th>
             <th class="py-2 px-3 text-center w-10 hidden md:table-cell">1h</th>
-            <th class="py-2 px-3 text-left">Trader</th>
-            <th class="py-2 px-3 text-right">Profit %</th>
-            <th class="py-2 px-3 text-right">Equity</th>
+            <th class="py-2 px-2 sm:px-3 text-left">Trader</th>
+            <th class="py-2 px-2 sm:px-3 text-right">Profit %</th>
+            <th class="py-2 px-3 text-right hidden sm:table-cell">Equity</th>
             <th class="py-2 px-3 text-right hidden md:table-cell">Max DD</th>
             <th class="py-2 px-3 text-right hidden md:table-cell">Positions</th>
-            <th class="py-2 px-3 text-right">Prize</th>
+            <th class="py-2 px-2 sm:px-3 text-right">Prize</th>
           </tr>
         </thead>
         <tbody>
@@ -146,7 +146,7 @@ export default function RankingTable(props: Props) {
                     <td class={`py-2.5 px-3 text-right font-mono ${isPositive() ? "text-green-400" : "text-red-400"}`}>
                       {isPositive() ? "+" : ""}{profitPct().toFixed(2)}%
                     </td>
-                    <td class="py-2.5 px-3 text-right font-mono text-gray-300">
+                    <td class="py-2.5 px-3 text-right font-mono text-gray-300 hidden sm:table-cell">
                       ${Number(entry.equity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td class="py-2.5 px-3 text-right font-mono text-gray-400 hidden md:table-cell">

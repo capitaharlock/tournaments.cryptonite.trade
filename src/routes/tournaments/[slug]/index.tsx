@@ -200,10 +200,13 @@ export default function TournamentDetail() {
               <DetailHero tournament={t()} />
 
               {/* ═══ MAIN CONTENT — 2 columns on desktop ═══ */}
+              {/* On mobile the sidebar renders ABOVE the rankings (order-first)
+                  so the user always sees CTA / countdown / status before
+                  having to scroll past the long rankings table. */}
               <div class="flex flex-col lg:flex-row gap-4">
 
                 {/* LEFT — Rankings (main) */}
-                <div class="flex-1">
+                <div class="flex-1 order-2 lg:order-1">
                   <div class="bg-black rounded-xl overflow-hidden shadow-xl shadow-black/50">
                     {/* Rankings header */}
                     <div class="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a]">
@@ -289,8 +292,8 @@ export default function TournamentDetail() {
                   </div>
                 </div>
 
-                {/* RIGHT — Sidebar info */}
-                <div class="lg:w-72 flex flex-col gap-4">
+                {/* RIGHT — Sidebar info (goes ABOVE rankings on mobile) */}
+                <div class="w-full lg:w-72 flex flex-col gap-4 order-1 lg:order-2">
 
                   {/* ═══ CTA CARD — fully conditional by status ═══ */}
                   <Show when={isReg() && t().spots_available > 0}>
