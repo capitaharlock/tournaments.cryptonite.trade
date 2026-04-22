@@ -566,7 +566,7 @@ function PrizeVaultBox(props: { tournaments: Tournament[] }) {
 
         <div class="text-center mb-5">
           <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total value across active &amp; upcoming</p>
-          <p class="text-5xl font-black text-yellow-300 drop-shadow-lg">${stats().total.toLocaleString()}+</p>
+          <p class="text-3xl sm:text-5xl font-black text-yellow-300 drop-shadow-lg break-all">${stats().total.toLocaleString()}+</p>
         </div>
 
         <div class="grid grid-cols-4 gap-2 mb-4">
