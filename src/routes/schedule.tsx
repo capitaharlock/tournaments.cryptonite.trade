@@ -95,7 +95,7 @@ export default function Schedule() {
                       Looking Ahead <span class="text-gray-500 text-sm font-normal">— beyond this week</span>
                     </h2>
                   </div>
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <TierColumn
                       icon="⚡"
                       title="Sprint"
@@ -231,7 +231,7 @@ function ScheduleCard(props: { tournament: Tournament }) {
         />
         <div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/60 to-transparent" />
 
-        <div class="relative px-6 py-5 flex items-start justify-between gap-6">
+        <div class="relative px-4 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
           {/* Left: type + title + prizes */}
           <div class="flex-1 min-w-0">
             <p class="text-sm text-white/60 font-medium mb-0.5">
@@ -240,7 +240,7 @@ function ScheduleCard(props: { tournament: Tournament }) {
                 {style().label}
               </span>
             </p>
-            <h2 class="text-2xl font-black text-white leading-tight drop-shadow-md mb-3">{t().name}</h2>
+            <h2 class="text-lg sm:text-2xl font-black text-white leading-tight drop-shadow-md mb-3">{t().name}</h2>
 
             {/* Prize pills */}
             <div class="flex items-center gap-2 flex-wrap">
@@ -276,7 +276,7 @@ function ScheduleCard(props: { tournament: Tournament }) {
       </div>
 
       {/* ─── Details grid ─── */}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-[#1a1a1a]">
+      <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-px bg-[#1a1a1a]">
         <DetailCell label="Tournament Starts" value={fmtDate(t().starts_at)} icon="play" />
         <DetailCell label="Tournament Ends" value={fmtDate(t().ends_at)} icon="stop" />
         <DetailCell label="Registration Opens" value={fmtDate(t().registration_opens_at)} icon="calendar" />
@@ -284,9 +284,9 @@ function ScheduleCard(props: { tournament: Tournament }) {
       </div>
 
       {/* ─── Stats + Rules + CTA (CTA takes double width) ─── */}
-      <div class="grid grid-cols-1 lg:grid-cols-4 gap-px bg-[#1a1a1a]">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-[#1a1a1a]">
         {/* Stats */}
-        <div class="bg-black p-5 lg:col-span-1">
+        <div class="bg-black p-5 md:col-span-1 lg:col-span-1">
           <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3">Tournament Stats</h3>
           <div class="space-y-2 text-sm">
             <StatLine label="Account Size" value={`$${Number(t().account_size).toLocaleString()}`} />
