@@ -2,7 +2,7 @@ import { createResource, createSignal, Show, onCleanup, createMemo, createEffect
 import { createStore, reconcile } from "solid-js/store";
 import { useParams, A } from "@solidjs/router";
 import { Title } from "@solidjs/meta";
-import { fetchTournament, fetchRankings } from "../../../services/api";
+import { fetchTournament, fetchRankingsWithMeta } from "../../../services/api";
 import type { Tournament } from "../../../types/tournament";
 import Header from "../../../components/layout/Header";
 import FlipClock from "../../../components/tournament/FlipClock";
@@ -14,7 +14,7 @@ const WORKER_WS_URL = import.meta.env.VITE_WORKER_WS_URL || "wss://cryptonite-to
 
 export default function TournamentDetail() {
   const params = useParams<{ slug: string }>();
-  const [tournament] = createResource(() => params.slug, fetchTournament);
+  const [tournament, { refetch: refetchTournament }] = createResource(() => params.slug, fetchTournament);
 
   // ─── Live rankings via store + reconcile (no flash, stable identity) ────
   // Critical: use createStore + reconcile keyed by entry_id so row objects
@@ -23,13 +23,15 @@ export default function TournamentDetail() {
   // its internal state and the expanded "positions" panel collapses.
   const [rankingsStore, setRankingsStore] = createStore<{ list: any[] }>({ list: [] });
   const [hasLoadedOnce, setHasLoadedOnce] = createSignal(false);
+  const [rankingsStale, setRankingsStale] = createSignal(false);
 
   const loadRankings = async () => {
     const id = tournament()?.id;
     if (!id) return;
     try {
       const useLive = tournament()?.status === "active";
-      const data = await fetchRankings(id, 100, 0, useLive);
+      const { data, stale } = await fetchRankingsWithMeta(id, 100, useLive);
+      setRankingsStale(stale);
       // reconcile merges by entry_id: same row => same object ref => <For> keeps children mounted
       setRankingsStore("list", reconcile(data || [], { key: "entry_id", merge: true }));
       setHasLoadedOnce(true);
@@ -37,6 +39,26 @@ export default function TournamentDetail() {
       console.error("rankings fetch failed", e);
     }
   };
+
+  // ─── Re-fetch tournament status every 30s when live ──────────────────
+  // Prevents stale status after tournament transitions (active → closing/finished)
+  // which would otherwise leave the WebSocket in an infinite reconnect loop.
+  let tournamentRefetchInterval: ReturnType<typeof setInterval> | null = null;
+  createEffect(() => {
+    if (tournament()?.status === "active") {
+      if (!tournamentRefetchInterval) {
+        tournamentRefetchInterval = setInterval(refetchTournament, 30_000);
+      }
+    } else {
+      if (tournamentRefetchInterval) {
+        clearInterval(tournamentRefetchInterval);
+        tournamentRefetchInterval = null;
+      }
+    }
+  });
+  onCleanup(() => {
+    if (tournamentRefetchInterval) clearInterval(tournamentRefetchInterval);
+  });
 
   // Initial HTTP fetch ONLY for non-active tournaments (finished, registration,
   // scheduled). Active tournaments get their data exclusively from the WebSocket
@@ -52,11 +74,18 @@ export default function TournamentDetail() {
     return rankingsStore.list;
   });
 
-  // ─── WebSocket for active tournaments ────────────────────────────────
-  // Streams full rankings (including positions) every 1s from the Worker.
-  // Falls back gracefully: if WS fails, the initial HTTP fetch is still there.
+  // ─── WebSocket for active AND registration tournaments ───────────────
+  // Active: streams full rankings (including positions) every 1s.
+  // Registration: receives push events (sign-ups, status changes) the
+  // moment they happen — no polling needed.
+  // Always falls back to the 30s tournament refetch if the WS drops an
+  // event or disconnects; nothing is ever lost.
   let wsRef: WebSocket | null = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Statuses that benefit from a live connection. Finished / cancelled get
+  // only the initial fetch (no updates needed).
+  const wsWantedStatuses = new Set(["registration", "scheduled", "active"]);
 
   const connectWs = (tournamentId: string) => {
     if (wsRef) {
@@ -69,6 +98,18 @@ export default function TournamentDetail() {
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
+        // Dispatch by explicit type (new push events) first, then fall
+        // back to the legacy ranking-frame format (no `type` field).
+        if (msg.type === "registration") {
+          // Merge count fields into the existing tournament signal so the
+          // whole UI (spots counter, progress bar, CTA) reacts atomically.
+          refetchTournament();
+          return;
+        }
+        if (msg.type === "status_change") {
+          refetchTournament();
+          return;
+        }
         if (msg.rankings && Array.isArray(msg.rankings) && msg.rankings.length > 0) {
           // Only update if Worker sent actual data (not empty — which means
           // it hasn't completed its first price+position cycle yet).
@@ -82,9 +123,14 @@ export default function TournamentDetail() {
 
     ws.onclose = () => {
       wsRef = null;
-      // Reconnect after 2s if tournament is still active
-      if (tournament()?.status === "active") {
-        reconnectTimer = setTimeout(() => connectWs(tournamentId), 2000);
+      // Trigger a tournament re-fetch so that if the tournament has ended,
+      // tournament()?.status will update before the reconnect fires.
+      refetchTournament();
+      // Reconnect after 3s if the tournament still benefits from a live WS.
+      if (wsWantedStatuses.has(tournament()?.status ?? "")) {
+        reconnectTimer = setTimeout(() => {
+          if (wsWantedStatuses.has(tournament()?.status ?? "")) connectWs(tournamentId);
+        }, 3000);
       }
     };
 
@@ -99,10 +145,10 @@ export default function TournamentDetail() {
   // Open/close WebSocket when tournament status changes
   createEffect(() => {
     const t = tournament();
-    if (t?.status === "active" && t.id) {
+    if (t && wsWantedStatuses.has(t.status) && t.id) {
       connectWs(t.id);
     } else {
-      // Not active — close any open WS
+      // Not a status we care to stream — close any open WS
       if (wsRef) {
         wsRef.close();
         wsRef = null;
@@ -155,13 +201,19 @@ export default function TournamentDetail() {
                         <h2 class="text-sm font-bold text-white">
                           {isLive() ? "Live Rankings" : isFinished() ? "Final Rankings" : "Participants"}
                         </h2>
-                        <Show when={isLive()}>
+                        <Show when={isLive() && !rankingsStale()}>
                           <span class="flex items-center gap-1 text-[10px] text-green-400">
                             <span class="relative flex h-1.5 w-1.5">
                               <span class="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75" />
                               <span class="relative rounded-full h-1.5 w-1.5 bg-green-500" />
                             </span>
                             Live
+                          </span>
+                        </Show>
+                        <Show when={isLive() && rankingsStale()}>
+                          <span class="flex items-center gap-1 text-[10px] text-yellow-500" title="Live feed unavailable — showing last known rankings (may be up to 1 min old)">
+                            <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                            Delayed
                           </span>
                         </Show>
                       </div>
