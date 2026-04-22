@@ -258,7 +258,7 @@ export default function TournamentDetail() {
                           </button>
                         </Show>
                         <span class="text-[10px] text-gray-600">
-                          {rankings().length} of {t().total_spots} participants
+                          {rankings().length} registered out of {t().total_spots} spots
                         </span>
                       </div>
                     </div>
@@ -317,15 +317,19 @@ export default function TournamentDetail() {
                         </div>
                       </div>
                     }>
-                      {/* Registered — waiting-room box */}
-                      <div class="relative bg-gradient-to-br from-emerald-500/15 to-emerald-700/5 rounded-xl overflow-hidden shadow-xl shadow-emerald-900/30 border border-emerald-500/30 p-5">
+                      {/* Registered — waiting-room box. Reuses the same
+                          style() tokens as the "Registration Open" CTA so
+                          the visual language (blue/cyan during registration)
+                          stays consistent; only the copy changes. */}
+                      <div class={`relative bg-gradient-to-br ${style().softGradient} rounded-xl overflow-hidden shadow-xl ${style().glow} border ${style().ring} p-5`}>
+                        <div class="absolute inset-0 opacity-[0.05] pointer-events-none" style="background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 20px);" />
                         <div class="relative text-center">
                           <div class="flex items-center justify-center gap-1.5 mb-3">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            <p class="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-300">You're In</p>
+                            <span class={`w-1.5 h-1.5 rounded-full ${style().accent.replace("text-", "bg-")} animate-pulse`} />
+                            <p class={`text-[10px] font-black uppercase tracking-[0.15em] ${style().accent}`}>You're In</p>
                           </div>
-                          <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/40 mb-3">
-                            <svg class="w-6 h-6 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                          <div class={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-black/30 border ${style().ring} mb-3`}>
+                            <svg class={`w-6 h-6 ${style().accent}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                               <polyline points="20 6 9 17 4 12" />
                             </svg>
                           </div>
