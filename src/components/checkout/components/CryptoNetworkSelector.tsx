@@ -18,7 +18,7 @@ export default function CryptoNetworkSelector(props: CryptoNetworkSelectorProps)
     return (
         <div>
             <label class="block mb-3 text-sm font-semibold text-gray-200">Network</label>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
                 <For each={NETWORK_OPTIONS}>
                     {(network) => {
                         const isSelected = () => props.selectedNetwork === network.value;

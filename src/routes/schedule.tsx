@@ -5,11 +5,14 @@ import { fetchTournaments } from "../services/api";
 import type { Tournament } from "../types/tournament";
 import Header from "../components/layout/Header";
 import FlipClock from "../components/tournament/FlipClock";
+import RegisteredCTA from "../components/tournament/RegisteredCTA";
 import { getStatusStyle } from "../lib/statusStyles";
+import { useUserEntries } from "../contexts/UserEntries";
 
 export default function Schedule() {
   const [registering] = createResource(() => fetchTournaments("registration"));
   const [upcoming] = createResource(() => fetchTournaments("scheduled"));
+  const userEntries = useUserEntries();
 
   const allUpcoming = createMemo(() => {
     const reg = registering() || [];
@@ -378,12 +381,18 @@ function ScheduleCard(props: { tournament: Tournament }) {
 
           <div class="relative flex flex-col items-start gap-2">
             <Show when={isReg() && t().spots_available > 0}>
-              <A
-                href={`/checkout/${t().slug}`}
-                class={`inline-flex items-center gap-1.5 px-5 py-2.5 ${style().cta} font-black rounded-lg transition text-sm shadow-md ${style().glow}`}
-              >
-                SIGN UP NOW →
-              </A>
+              <Show when={!userEntries.isRegistered(t().id)} fallback={
+                <RegisteredCTA slug={t().slug} tone="waiting"
+                  class={`inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40 text-emerald-300 font-black rounded-lg transition text-sm shadow-md ${style().glow}`}
+                />
+              }>
+                <A
+                  href={`/checkout/${t().slug}`}
+                  class={`inline-flex items-center gap-1.5 px-5 py-2.5 ${style().cta} font-black rounded-lg transition text-sm shadow-md ${style().glow}`}
+                >
+                  SIGN UP NOW →
+                </A>
+              </Show>
               <A
                 href={`/tournaments/${t().slug}`}
                 class="text-[11px] text-gray-500 hover:text-white transition"
@@ -400,12 +409,18 @@ function ScheduleCard(props: { tournament: Tournament }) {
 
             <Show when={isScheduled()}>
               <div class="flex items-center gap-2 flex-wrap">
-                <A
-                  href={`/checkout/${t().slug}?reserve=1`}
-                  class={`inline-flex items-center gap-1.5 px-5 py-2.5 ${style().cta} font-black rounded-lg transition text-sm shadow-md ${style().glow}`}
-                >
-                  RESERVE MY SPOT →
-                </A>
+                <Show when={!userEntries.isRegistered(t().id)} fallback={
+                  <RegisteredCTA slug={t().slug} tone="waiting"
+                    class={`inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40 text-emerald-300 font-black rounded-lg transition text-sm shadow-md ${style().glow}`}
+                  />
+                }>
+                  <A
+                    href={`/checkout/${t().slug}?reserve=1`}
+                    class={`inline-flex items-center gap-1.5 px-5 py-2.5 ${style().cta} font-black rounded-lg transition text-sm shadow-md ${style().glow}`}
+                  >
+                    RESERVE MY SPOT →
+                  </A>
+                </Show>
                 <A
                   href={`/tournaments/${t().slug}?notify=1`}
                   class="inline-flex items-center gap-1.5 px-4 py-2.5 border border-gray-700 hover:border-gray-500 text-gray-300 hover:text-white font-bold rounded-lg transition text-sm"

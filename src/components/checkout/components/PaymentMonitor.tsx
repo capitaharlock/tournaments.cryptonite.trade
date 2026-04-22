@@ -1,6 +1,6 @@
 import { createSignal, onCleanup, onMount, Show } from 'solid-js';
 import type { PaymentData } from '../types/checkout.types';
-import { getNetworkName } from '../utils/crypto-icons';
+import { getNetworkName, getTokenDisplayName } from '../utils/crypto-icons';
 import { getSmartDecimals } from '../utils/crypto-price';
 import QRCode from 'qrcode';
 
@@ -13,6 +13,8 @@ interface PaymentMonitorProps {
     onBack: () => void;
     onCancelAndGetNew: () => void;
     onConfirmed: (entryId: string, accountId: string) => void;
+    /** [DEV/STAGING ONLY] Show "Simulate Payment" button. Remove when no longer needed. */
+    allowSimulation?: boolean;
 }
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:7002";
@@ -32,6 +34,36 @@ export default function PaymentMonitor(props: PaymentMonitorProps) {
     const [showQrMobile, setShowQrMobile] = createSignal(false);
 
     let pollCount = 0;
+
+    // [DEV/STAGING ONLY] Trigger the simulate-payment endpoint — bypasses
+    // real payment verification and creates the tournament entry directly.
+    // Remove when no longer needed.
+    const simulatePayment = async () => {
+        try {
+            const response = await fetch(
+                `${import.meta.env.VITE_API_URL}/v1/tournaments/${props.tournamentId}/simulate-payment`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${props.jwt}`,
+                    },
+                    body: JSON.stringify({ intent_id: props.intentId }),
+                }
+            );
+            const data = await response.json();
+            if (data.success && data.data?.entry_id && data.data?.trading_account_id) {
+                setPaymentStatus('confirmed');
+                props.onConfirmed(data.data.entry_id, data.data.trading_account_id);
+            } else {
+                console.error('Simulate payment failed:', data);
+                alert(`Simulation failed: ${data.message || 'unknown error'}`);
+            }
+        } catch (e) {
+            console.error('Simulate error:', e);
+            alert(`Simulation error: ${e}`);
+        }
+    };
 
     // Poll the tournament payment intent status — looks for completed state
     const pollPaymentStatus = async () => {
@@ -54,9 +86,9 @@ export default function PaymentMonitor(props: PaymentMonitorProps) {
             if (!response.ok) return;
             const data = await response.json();
 
-            if (data.success && data.data?.tournament_entry_id && data.data?.trading_account_id) {
+            if (data.success && data.data?.entry_id && data.data?.trading_account_id) {
                 setPaymentStatus('confirmed');
-                props.onConfirmed(data.data.tournament_entry_id, data.data.trading_account_id);
+                props.onConfirmed(data.data.entry_id, data.data.trading_account_id);
                 return;
             }
 
@@ -171,7 +203,7 @@ export default function PaymentMonitor(props: PaymentMonitorProps) {
             {/* Amount + Network bar */}
             <div class="p-4 bg-[#121212] rounded-lg border border-[#2E2E2E] flex justify-between items-center flex-wrap gap-2">
                 <div class="text-2xl font-bold text-green-500">
-                    {formatPayAmount()} {props.paymentData.payCurrency.toUpperCase()}
+                    {formatPayAmount()} {getTokenDisplayName(props.paymentData.payCurrency)}
                 </div>
                 <div class="text-xs text-gray-400 flex items-center gap-1.5">
                     <span>Network:</span>
@@ -236,7 +268,7 @@ export default function PaymentMonitor(props: PaymentMonitorProps) {
 
                 <Show when={paymentStatus() === 'waiting' && !isExpired()}>
                     <div class="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                    <span class="text-sm text-gray-200">Waiting for transaction</span>
+                    <span class="text-sm text-gray-200">Waiting for your transaction</span>
                     <span class="text-white/20">|</span>
                     <span class="text-sm font-bold text-orange-400 font-mono">⏳ {timeLeft()}</span>
                     <span class="text-white/20">|</span>
@@ -262,6 +294,19 @@ export default function PaymentMonitor(props: PaymentMonitorProps) {
             </div>
 
             {/* Footer */}
+            {/* [DEV/STAGING ONLY] Simulate payment button — REMOVE WHEN NO LONGER NEEDED */}
+            <Show when={props.allowSimulation && paymentStatus() === 'waiting'}>
+                <div class="bg-yellow-900/20 border border-yellow-600/40 rounded-lg p-3 flex items-center justify-between gap-3">
+                    <div class="flex-1 text-xs text-yellow-200">
+                        🧪 <strong>DEV TOOL</strong> — Skip real payment and create the entry directly (for testing only)
+                    </div>
+                    <button onClick={simulatePayment}
+                        class="bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-md text-xs font-bold transition whitespace-nowrap">
+                        Simulate Payment
+                    </button>
+                </div>
+            </Show>
+
             <div class="pt-4 border-t border-[#2E2E2E] flex justify-between items-center flex-wrap gap-2">
                 <button onClick={props.onBack}
                     class="bg-transparent border border-[#2E2E2E] text-gray-400 px-4 py-2 rounded-lg text-xs flex items-center gap-1.5 transition hover:border-gray-500 hover:text-gray-300">

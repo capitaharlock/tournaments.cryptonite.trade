@@ -6,9 +6,9 @@
 
 export type PaymentMethod = 'paypal' | 'crypto';
 
-export type PaymentNetwork = 'bitcoin' | 'ethereum' | 'solana' | 'arbitrum' | 'other';
+export type PaymentNetwork = 'bitcoin' | 'ethereum' | 'solana' | 'arbitrum' | 'tron' | 'bsc' | 'other';
 
-export type PaymentToken = 'btc' | 'eth' | 'sol' | 'usdc' | 'usdt';
+export type PaymentToken = 'btc' | 'eth' | 'sol' | 'bnb' | 'trx' | 'usdc' | 'usdt';
 
 export type PaymentStatus = 'waiting' | 'confirming' | 'confirmed' | 'failed' | 'expired';
 

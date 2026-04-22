@@ -8,13 +8,20 @@ import Header from "../../../components/layout/Header";
 import FlipClock from "../../../components/tournament/FlipClock";
 import TournamentProgress from "../../../components/tournament/TournamentProgress";
 import RankingTable from "../../../components/tournament/RankingTable";
+import RegisteredCTA from "../../../components/tournament/RegisteredCTA";
 import { getStatusStyle } from "../../../lib/statusStyles";
+import { useUserEntries } from "../../../contexts/UserEntries";
 
 const WORKER_WS_URL = import.meta.env.VITE_WORKER_WS_URL || "wss://cryptonite-tournament-worker.fly.dev";
 
 export default function TournamentDetail() {
   const params = useParams<{ slug: string }>();
   const [tournament, { refetch: refetchTournament }] = createResource(() => params.slug, fetchTournament);
+  const userEntries = useUserEntries();
+  const isUserIn = () => {
+    const t = tournament();
+    return t ? userEntries.isRegistered(t.id) : false;
+  };
 
   // ─── Live rankings via store + reconcile (no flash, stable identity) ────
   // Critical: use createStore + reconcile keyed by entry_id so row objects
@@ -294,14 +301,20 @@ export default function TournamentDetail() {
                           <span class={`w-1.5 h-1.5 rounded-full ${style().accent.replace("text-", "bg-")} animate-pulse`} />
                           <p class={`text-[10px] font-black uppercase tracking-[0.15em] ${style().accent}`}>Registration Open</p>
                         </div>
-                        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Entry Fee</p>
-                        <p class="text-4xl font-black text-white mb-3 leading-none">${t().entry_fee}</p>
-                        <A
-                          href={`/checkout/${t().slug}`}
-                          class={`block w-full py-3.5 ${style().cta} font-black rounded-lg transition text-sm mb-3 shadow-lg ${style().glow}`}
-                        >
-                          SIGN UP NOW →
-                        </A>
+                        <Show when={!isUserIn()} fallback={
+                          <div class="mb-3">
+                            <RegisteredCTA slug={t().slug} tone="waiting" class={`block w-full py-3.5 text-center bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40 text-emerald-300 font-black rounded-lg transition text-sm shadow-lg ${style().glow}`} />
+                          </div>
+                        }>
+                          <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Entry Fee</p>
+                          <p class="text-4xl font-black text-white mb-3 leading-none">${t().entry_fee}</p>
+                          <A
+                            href={`/checkout/${t().slug}`}
+                            class={`block w-full py-3.5 ${style().cta} font-black rounded-lg transition text-sm mb-3 shadow-lg ${style().glow}`}
+                          >
+                            SIGN UP NOW →
+                          </A>
+                        </Show>
                         <div class="bg-black/40 rounded-lg p-2.5">
                           <FlipClock targetDate={t().starts_at} label="REGISTRATION CLOSES IN" size="sm" />
                         </div>
@@ -331,14 +344,20 @@ export default function TournamentDetail() {
                           <span class={`w-1.5 h-1.5 rounded-full ${style().accent.replace("text-", "bg-")} animate-pulse`} />
                           <p class={`text-[10px] font-black uppercase tracking-[0.15em] ${style().accent}`}>Coming Soon</p>
                         </div>
-                        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Entry Fee</p>
-                        <p class="text-4xl font-black text-white mb-3 leading-none">${t().entry_fee}</p>
-                        <A
-                          href={`/checkout/${t().slug}`}
-                          class={`block w-full py-3.5 ${style().cta} font-black rounded-lg transition text-sm mb-3 shadow-lg ${style().glow}`}
-                        >
-                          NOTIFY ME WHEN OPEN →
-                        </A>
+                        <Show when={!isUserIn()} fallback={
+                          <div class="mb-3">
+                            <RegisteredCTA slug={t().slug} tone="waiting" class={`block w-full py-3.5 text-center bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40 text-emerald-300 font-black rounded-lg transition text-sm shadow-lg ${style().glow}`} />
+                          </div>
+                        }>
+                          <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Entry Fee</p>
+                          <p class="text-4xl font-black text-white mb-3 leading-none">${t().entry_fee}</p>
+                          <A
+                            href={`/checkout/${t().slug}`}
+                            class={`block w-full py-3.5 ${style().cta} font-black rounded-lg transition text-sm mb-3 shadow-lg ${style().glow}`}
+                          >
+                            NOTIFY ME WHEN OPEN →
+                          </A>
+                        </Show>
                         <div class="bg-black/40 rounded-lg p-2.5">
                           <FlipClock targetDate={t().registration_opens_at} label="REGISTRATION OPENS IN" size="sm" />
                         </div>

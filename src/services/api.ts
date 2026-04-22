@@ -53,3 +53,22 @@ export async function fetchRankings(
     : `/v1/tournaments/${tournamentId}/rankings?limit=${limit}&offset=${offset}`;
   return get(path);
 }
+
+/**
+ * Same as fetchRankings but also returns whether the data came from the
+ * DB fallback (Worker unavailable). Used to show a "may be delayed" badge.
+ */
+export async function fetchRankingsWithMeta(
+  tournamentId: string,
+  limit = 50,
+  live = true
+): Promise<{ data: RankingEntry[]; stale: boolean }> {
+  const path = live
+    ? `/v1/tournaments/${tournamentId}/rankings/live?limit=${limit}`
+    : `/v1/tournaments/${tournamentId}/rankings?limit=${limit}`;
+  const res = await fetch(`${API_URL}${path}`);
+  if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`);
+  const json: ApiResponse<RankingEntry[]> = await res.json();
+  if (!json.success) throw new Error(json.message || "API error");
+  return { data: json.data, stale: !!json.message };
+}

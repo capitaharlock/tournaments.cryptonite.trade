@@ -16,6 +16,10 @@ export const getSupportedTokens = (network: PaymentNetwork): PaymentToken[] => {
             return ['btc'];
         case 'ethereum':
             return ['usdc', 'usdt', 'eth'];
+        case 'tron':
+            return ['usdt', 'trx']; // USDT-TRC20 is the dominant USDT network worldwide
+        case 'bsc':
+            return ['usdt', 'usdc', 'bnb']; // BEP20
         case 'solana':
             return ['usdc', 'usdt', 'sol'];
         case 'arbitrum':
@@ -28,16 +32,20 @@ export const getSupportedTokens = (network: PaymentNetwork): PaymentToken[] => {
 /**
  * Convert (token, network) to the NOWPayments currency code.
  * This is what we send to the API's `pay_currency` parameter.
+ * Codes from: https://nowpayments.io/supported-coins
  */
 export const getCurrencyCode = (token: PaymentToken, network: PaymentNetwork): string => {
     if (token === 'usdt') {
         if (network === 'ethereum') return 'usdterc20';
+        if (network === 'tron') return 'usdttrc20';
+        if (network === 'bsc') return 'usdtbsc';
         if (network === 'solana') return 'usdtsol';
         if (network === 'arbitrum') return 'usdtarb';
         return 'usdterc20';
     }
     if (token === 'usdc') {
         if (network === 'ethereum') return 'usdc';
+        if (network === 'bsc') return 'usdcbsc';
         if (network === 'solana') return 'usdcsol';
         if (network === 'arbitrum') return 'usdcarb';
         return 'usdc';
@@ -46,5 +54,7 @@ export const getCurrencyCode = (token: PaymentToken, network: PaymentNetwork): s
         if (network === 'arbitrum') return 'etharb';
         return 'eth';
     }
+    if (token === 'bnb') return 'bnbbsc';
+    if (token === 'trx') return 'trx';
     return token; // btc, sol
 };

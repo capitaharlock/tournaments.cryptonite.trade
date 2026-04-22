@@ -496,7 +496,7 @@ export default function Checkout() {
                             <div class="w-10 h-10 rounded-lg bg-[#F7931A] flex items-center justify-center text-white font-bold text-lg">B</div>
                             <div class="text-left flex-1">
                               <p class="text-white font-semibold text-sm">Cryptocurrency</p>
-                              <p class="text-gray-500 text-xs">BTC, ETH, SOL, USDC, USDT</p>
+                              <p class="text-gray-500 text-xs">Networks: Ethereum, Tron, BSC, Arbitrum, Solana, Bitcoin</p>
                               <div class="flex gap-1.5 mt-2 text-xs text-gray-500">
                                 <span style="color:#F7931A">BTC</span>
                                 <span style="color:#627EEA">ETH</span>
@@ -599,6 +599,7 @@ export default function Checkout() {
                                 setEntryResult({ entry_id: entryId, trading_account_id: accountId });
                                 setStep("success");
                               }}
+                              allowSimulation={true} /* [DEV/STAGING ONLY] remove when done testing */
                             />
                           </Show>
                         </Show>

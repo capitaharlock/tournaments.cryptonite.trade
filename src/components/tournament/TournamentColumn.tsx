@@ -4,6 +4,7 @@ import type { Tournament, RankingEntry } from "../../types/tournament";
 import { fetchRankings } from "../../services/api";
 import Countdown from "./Countdown";
 import MiniRanking from "./MiniRanking";
+import { useUserEntries } from "../../contexts/UserEntries";
 
 interface Props {
   tournament: Tournament;
@@ -13,6 +14,8 @@ export default function TournamentColumn(props: Props) {
   const t = () => props.tournament;
   const isLive = () => t().status === "active";
   const isRegistering = () => t().status === "registration";
+  const userEntries = useUserEntries();
+  const isUserIn = () => userEntries.isRegistered(t().id);
 
   const [rankings, { refetch }] = createResource(
     () => t().id,
@@ -91,12 +94,21 @@ export default function TournamentColumn(props: Props) {
 
       {/* CTA */}
       <Show when={isRegistering() && t().spots_available > 0}>
-        <A
-          href={`/checkout/${t().slug}`}
-          class="block text-center py-3 bg-green-600 hover:bg-green-500 text-white font-bold text-sm transition-colors"
-        >
-          Join — ${t().entry_fee}
-        </A>
+        <Show when={!isUserIn()} fallback={
+          <A
+            href={`/tournaments/${t().slug}`}
+            class="block text-center py-3 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border-t border-emerald-500/40 text-emerald-300 font-bold text-sm transition-colors"
+          >
+            ✓ You're in — good luck!
+          </A>
+        }>
+          <A
+            href={`/checkout/${t().slug}`}
+            class="block text-center py-3 bg-green-600 hover:bg-green-500 text-white font-bold text-sm transition-colors"
+          >
+            Join — ${t().entry_fee}
+          </A>
+        </Show>
       </Show>
       <Show when={isLive() || (isRegistering() && t().spots_available <= 0)}>
         <A

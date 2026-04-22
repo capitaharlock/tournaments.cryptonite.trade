@@ -8,7 +8,9 @@ import FlipClock from "../components/tournament/FlipClock";
 import MiniRanking from "../components/tournament/MiniRanking";
 import TournamentProgress from "../components/tournament/TournamentProgress";
 import TournamentHero from "../components/tournament/TournamentHero";
+import RegisteredCTA from "../components/tournament/RegisteredCTA";
 import { getStatusStyle } from "../lib/statusStyles";
+import { useUserEntries } from "../contexts/UserEntries";
 
 export default function Home() {
   const [active] = createResource(() => fetchTournaments("active"));
@@ -187,6 +189,8 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
   const isScheduled = () => t().status === "scheduled";
   const isFinished = () => t().status === "finished";
   const canJoin = () => isReg() && t().spots_available > 0;
+  const userEntries = useUserEntries();
+  const isUserIn = () => userEntries.isRegistered(t().id);
 
   // ─── Live rankings via signal + manual poll (no flash on update) ────
   // Plain signal instead of createResource — refetch on createResource
@@ -265,15 +269,21 @@ function TournamentPanel(props: { tournament: Tournament; maxRanks: number }) {
           {/* Right: primary CTA */}
           <div class="flex-1 flex justify-end">
             <Show when={canJoin()}>
-              <A
-                href={`/checkout/${t().slug}`}
-                class={`group flex items-center gap-1.5 px-4 h-8 ${style().cta} font-black rounded-md transition text-[12px] shadow-md ${style().glow} hover:scale-[1.02]`}
-              >
-                <span>JOIN — ${t().entry_fee}</span>
-                <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
-                  <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-                </svg>
-              </A>
+              <Show when={!isUserIn()} fallback={
+                <RegisteredCTA slug={t().slug} tone="waiting"
+                  class={`flex items-center gap-1.5 px-4 h-8 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40 text-emerald-300 font-black rounded-md transition text-[12px] shadow-md ${style().glow}`}
+                />
+              }>
+                <A
+                  href={`/checkout/${t().slug}`}
+                  class={`group flex items-center gap-1.5 px-4 h-8 ${style().cta} font-black rounded-md transition text-[12px] shadow-md ${style().glow} hover:scale-[1.02]`}
+                >
+                  <span>JOIN — ${t().entry_fee}</span>
+                  <svg class="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                    <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </A>
+              </Show>
             </Show>
             <Show when={isLive()}>
               <A
@@ -330,6 +340,8 @@ function AgendaRow(props: { tournament: Tournament; isLive?: boolean; isRegister
   const canJoin = () => isReg() && t().spots_available > 0;
   const isFull = () => isReg() && t().spots_available <= 0;
   const style = () => getStatusStyle(t().status);
+  const userEntries = useUserEntries();
+  const isUserIn = () => userEntries.isRegistered(t().id);
 
   return (
     <A
@@ -378,10 +390,16 @@ function AgendaRow(props: { tournament: Tournament; isLive?: boolean; isRegister
           Aligned to the right, matching the countdown's right edge */}
       <Show when={canJoin()}>
         <div class="flex justify-end mt-2.5" onClick={(e: any) => e.preventDefault()}>
-          <A href={`/checkout/${t().slug}`}
-            class="inline-block px-5 py-1.5 bg-green-600 hover:bg-green-500 text-white text-[11px] font-bold rounded-md transition focus:outline-none focus:ring-2 focus:ring-green-400/50">
-            Join — ${t().entry_fee}
-          </A>
+          <Show when={!isUserIn()} fallback={
+            <span class="inline-block px-5 py-1.5 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold rounded-md">
+              ✓ You're in
+            </span>
+          }>
+            <A href={`/checkout/${t().slug}`}
+              class="inline-block px-5 py-1.5 bg-green-600 hover:bg-green-500 text-white text-[11px] font-bold rounded-md transition focus:outline-none focus:ring-2 focus:ring-green-400/50">
+              Join — ${t().entry_fee}
+            </A>
+          </Show>
         </div>
       </Show>
     </A>
@@ -800,6 +818,7 @@ function FinishedCard(props: { tournament: Tournament }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function NextTournamentBanner(props: { upcoming: Tournament[] }) {
+  const userEntries = useUserEntries();
   const [now, setNow] = createSignal(new Date());
   let interval: any;
   onMount(() => { interval = setInterval(() => setNow(new Date()), 1000); });
@@ -885,10 +904,17 @@ function NextTournamentBanner(props: { upcoming: Tournament[] }) {
                     {next()!.spots_available <= 0 ? "SOLD OUT" : "View Details"}
                   </A>
                 }>
-                <A href={`/checkout/${next()!.slug}`}
-                  class="ml-2 px-3 py-1 bg-green-600 hover:bg-green-500 text-white font-bold text-[11px] rounded transition">
-                  Get Your Spot
-                </A>
+                <Show when={!userEntries.isRegistered(next()!.id)} fallback={
+                  <A href={`/tournaments/${next()!.slug}`}
+                    class="ml-2 px-3 py-1 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40 text-emerald-300 font-bold text-[11px] rounded">
+                    ✓ You're in
+                  </A>
+                }>
+                  <A href={`/checkout/${next()!.slug}`}
+                    class="ml-2 px-3 py-1 bg-green-600 hover:bg-green-500 text-white font-bold text-[11px] rounded transition">
+                    Get Your Spot
+                  </A>
+                </Show>
               </Show>
             </div>
           </Show>
@@ -907,6 +933,8 @@ function PrestartEmptyState(props: { tournament: Tournament }) {
   const t = () => props.tournament;
   const style = () => getStatusStyle(t().status);
   const isReg = () => t().status === "registration";
+  const userEntries = useUserEntries();
+  const isUserIn = () => userEntries.isRegistered(t().id);
 
   return (
     <div class="px-4 py-8 flex flex-col items-center justify-center text-center">
@@ -925,12 +953,18 @@ function PrestartEmptyState(props: { tournament: Tournament }) {
           : `Registration opens soon. Rankings appear once the tournament starts.`}
       </p>
       <Show when={isReg() && t().spots_available > 0}>
-        <A
-          href={`/checkout/${t().slug}`}
-          class={`inline-flex items-center gap-1.5 px-5 py-2 ${style().cta} font-black rounded-lg transition text-sm shadow-md ${style().glow}`}
-        >
-          JOIN NOW — ${t().entry_fee} →
-        </A>
+        <Show when={!isUserIn()} fallback={
+          <RegisteredCTA slug={t().slug} tone="waiting"
+            class={`inline-flex items-center gap-1.5 px-5 py-2 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40 text-emerald-300 font-black rounded-lg transition text-sm shadow-md ${style().glow}`}
+          />
+        }>
+          <A
+            href={`/checkout/${t().slug}`}
+            class={`inline-flex items-center gap-1.5 px-5 py-2 ${style().cta} font-black rounded-lg transition text-sm shadow-md ${style().glow}`}
+          >
+            JOIN NOW — ${t().entry_fee} →
+          </A>
+        </Show>
       </Show>
     </div>
   );
