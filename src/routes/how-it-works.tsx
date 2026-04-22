@@ -23,7 +23,7 @@ export default function HowItWorks() {
             <p class="text-[11px] text-green-400 uppercase tracking-[0.2em] font-bold mb-3">
               How It Works
             </p>
-            <h1 class="text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4 leading-tight">
               Pay a small fee.<br />Trade. <span class="text-green-400">Win real prizes.</span>
             </h1>
             <p class="text-gray-400 text-base md:text-lg max-w-2xl mx-auto mb-8">
@@ -58,7 +58,7 @@ export default function HowItWorks() {
             <h2 class="text-3xl font-black text-white">From registration to payout</h2>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StepCard
               n={1}
               icon="ticket"
@@ -101,7 +101,7 @@ export default function HowItWorks() {
               </p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <TierCard
                 icon="⚡"
                 name="Sprint"
@@ -178,7 +178,7 @@ export default function HowItWorks() {
             </p>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <PrizeCard
               icon="cash"
               label="Cash Prize"
@@ -230,7 +230,7 @@ export default function HowItWorks() {
               <h2 class="text-3xl font-black text-white">Simple, transparent, fair</h2>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <RuleCard
                 icon="shield"
                 title="Max Drawdown 10%"
