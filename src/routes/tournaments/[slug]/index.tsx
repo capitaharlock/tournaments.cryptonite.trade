@@ -294,18 +294,14 @@ export default function TournamentDetail() {
 
                   {/* ═══ CTA CARD — fully conditional by status ═══ */}
                   <Show when={isReg() && t().spots_available > 0}>
-                    <div class={`relative bg-gradient-to-br ${style().softGradient} rounded-xl overflow-hidden shadow-xl ${style().glow} border ${style().ring} p-5`}>
-                      <div class="absolute inset-0 opacity-[0.05] pointer-events-none" style="background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 20px);" />
-                      <div class="relative text-center">
-                        <div class="flex items-center justify-center gap-1.5 mb-2">
-                          <span class={`w-1.5 h-1.5 rounded-full ${style().accent.replace("text-", "bg-")} animate-pulse`} />
-                          <p class={`text-[10px] font-black uppercase tracking-[0.15em] ${style().accent}`}>Registration Open</p>
-                        </div>
-                        <Show when={!isUserIn()} fallback={
-                          <div class="mb-3">
-                            <RegisteredCTA slug={t().slug} tone="waiting" class={`block w-full py-3.5 text-center bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40 text-emerald-300 font-black rounded-lg transition text-sm shadow-lg ${style().glow}`} />
+                    <Show when={isUserIn()} fallback={
+                      <div class={`relative bg-gradient-to-br ${style().softGradient} rounded-xl overflow-hidden shadow-xl ${style().glow} border ${style().ring} p-5`}>
+                        <div class="absolute inset-0 opacity-[0.05] pointer-events-none" style="background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 20px);" />
+                        <div class="relative text-center">
+                          <div class="flex items-center justify-center gap-1.5 mb-2">
+                            <span class={`w-1.5 h-1.5 rounded-full ${style().accent.replace("text-", "bg-")} animate-pulse`} />
+                            <p class={`text-[10px] font-black uppercase tracking-[0.15em] ${style().accent}`}>Registration Open</p>
                           </div>
-                        }>
                           <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Entry Fee</p>
                           <p class="text-4xl font-black text-white mb-3 leading-none">${t().entry_fee}</p>
                           <A
@@ -314,13 +310,33 @@ export default function TournamentDetail() {
                           >
                             SIGN UP NOW →
                           </A>
-                        </Show>
-                        <div class="bg-black/40 rounded-lg p-2.5">
-                          <FlipClock targetDate={t().starts_at} label="REGISTRATION CLOSES IN" size="sm" />
+                          <div class="bg-black/40 rounded-lg p-2.5">
+                            <FlipClock targetDate={t().starts_at} label="REGISTRATION CLOSES IN" size="sm" />
+                          </div>
+                          <p class="text-gray-400 text-[10px] mt-2">{t().spots_available} of {t().total_spots} spots remaining</p>
                         </div>
-                        <p class="text-gray-400 text-[10px] mt-2">{t().spots_available} of {t().total_spots} spots remaining</p>
                       </div>
-                    </div>
+                    }>
+                      {/* Registered — waiting-room box */}
+                      <div class="relative bg-gradient-to-br from-emerald-500/15 to-emerald-700/5 rounded-xl overflow-hidden shadow-xl shadow-emerald-900/30 border border-emerald-500/30 p-5">
+                        <div class="relative text-center">
+                          <div class="flex items-center justify-center gap-1.5 mb-3">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <p class="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-300">You're In</p>
+                          </div>
+                          <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/40 mb-3">
+                            <svg class="w-6 h-6 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </div>
+                          <p class="text-lg font-black text-white mb-1 leading-tight">Good luck!</p>
+                          <p class="text-[11px] text-gray-400 mb-3">See you at the start line</p>
+                          <div class="bg-black/40 rounded-lg p-2.5">
+                            <FlipClock targetDate={t().starts_at} label="TOURNAMENT STARTS IN" size="sm" />
+                          </div>
+                        </div>
+                      </div>
+                    </Show>
                   </Show>
 
                   <Show when={isReg() && t().spots_available <= 0}>

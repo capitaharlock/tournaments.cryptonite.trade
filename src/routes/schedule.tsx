@@ -12,7 +12,6 @@ import { useUserEntries } from "../contexts/UserEntries";
 export default function Schedule() {
   const [registering] = createResource(() => fetchTournaments("registration"));
   const [upcoming] = createResource(() => fetchTournaments("scheduled"));
-  const userEntries = useUserEntries();
 
   const allUpcoming = createMemo(() => {
     const reg = registering() || [];
@@ -204,6 +203,7 @@ function ScheduleCard(props: { tournament: Tournament }) {
   const style = () => getStatusStyle(t().status);
   const isReg = () => t().status === "registration";
   const isScheduled = () => t().status === "scheduled";
+  const userEntries = useUserEntries();
   const totalDays = () =>
     Math.round((new Date(t().ends_at).getTime() - new Date(t().starts_at).getTime()) / 86400000);
   const isSprint = () => t().name.includes("Sprint");
