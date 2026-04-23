@@ -522,6 +522,15 @@ function UpcomingBox(props: { rest: Tournament[]; registering: Tournament[]; sch
 const challengePrice = (size: number): number => Math.round(size * 0.0125);
 const qualifyPrice = (size: number): number => Math.round(size * 0.006);
 
+/**
+ * Minimum prize pool we commit to keep visible at all times. When the
+ * computed value of current active/upcoming tournaments is below this
+ * number the "+" suffix carries the promise ("at least $X"), backed by
+ * the "Guaranteed" badge and escrow copy. When the real value exceeds
+ * it, we show the real figure untouched.
+ */
+const GUARANTEED_PRIZE_POOL = 10_000;
+
 function PrizeVaultBox(props: { tournaments: Tournament[] }) {
   // Calculate from real tournament data with proper valuations
   const stats = createMemo(() => {
@@ -552,7 +561,8 @@ function PrizeVaultBox(props: { tournaments: Tournament[] }) {
         }
       }
     }
-    const total = cash + challengeValue + qualifyValue + retryValue;
+    const realTotal = cash + challengeValue + qualifyValue + retryValue;
+    const total = Math.max(realTotal, GUARANTEED_PRIZE_POOL);
     return { cash, challenges, qualify, retries, challengeValue, qualifyValue, retryValue, total };
   });
 
