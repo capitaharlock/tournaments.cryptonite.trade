@@ -567,32 +567,32 @@ function PrizeVaultBox(props: { tournaments: Tournament[] }) {
   });
 
   return (
-    <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full">
-      <div class="p-5">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.15em]">Prize Vault</h2>
-          <span class="text-[10px] text-yellow-400 font-medium">Guaranteed</span>
+    <div class="bg-surface border border-subtle rounded-xl overflow-hidden shadow-xl shadow-black/50 h-full">
+      <div class="p-5 sm:p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h2 class="text-label text-muted">Prize Vault</h2>
+          <span class="text-label-sm text-accent-gold">Guaranteed</span>
         </div>
 
-        <div class="text-center mb-5">
-          <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total value across active &amp; upcoming</p>
-          <p class="text-3xl sm:text-5xl font-black text-yellow-300 drop-shadow-lg break-all">${stats().total.toLocaleString()}+</p>
+        <div class="text-center mb-6">
+          <p class="text-label-sm text-muted mb-2">Total value across active &amp; upcoming</p>
+          <p class="text-display-2 text-accent-gold drop-shadow-lg break-all">${stats().total.toLocaleString()}+</p>
         </div>
 
-        <div class="grid grid-cols-4 gap-2 mb-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
           <VaultStat icon="cash" label="Cash" value={`$${stats().cash.toLocaleString()}`} subtext={`${stats().cash > 0 ? "cash pool" : "—"}`} />
           <VaultStat icon="challenge" label="Challenges" value={`${stats().challenges}x`} subtext={stats().challengeValue > 0 ? `$${stats().challengeValue.toLocaleString()}` : "—"} />
           <VaultStat icon="qualify" label="Qualify" value={`${stats().qualify}x`} subtext={stats().qualifyValue > 0 ? `$${stats().qualifyValue.toLocaleString()}` : "—"} />
           <VaultStat icon="retry" label="Retries" value={`${stats().retries}x`} subtext={stats().retryValue > 0 ? `$${stats().retryValue.toLocaleString()}` : "—"} />
         </div>
 
-        <div class="bg-[#0a0a0a] rounded-lg px-4 py-3 flex items-center gap-2 border border-gray-800/60">
-          <svg class="w-4 h-4 text-green-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <div class="bg-surface-sunken rounded-lg px-4 py-3 flex items-center gap-3 border border-subtle">
+          <svg class="w-5 h-5 text-accent-success flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
           <div>
-            <p class="text-xs text-white font-medium">Funds held in escrow</p>
-            <p class="text-[10px] text-gray-600">Payouts guaranteed for all tournament winners</p>
+            <p class="text-body-sm text-primary font-semibold">Funds held in escrow</p>
+            <p class="text-caption-sm text-muted">Payouts guaranteed for all tournament winners</p>
           </div>
         </div>
       </div>
