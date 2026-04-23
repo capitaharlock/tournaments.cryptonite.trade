@@ -576,7 +576,7 @@ function PrizeVaultBox(props: { tournaments: Tournament[] }) {
 
         <div class="text-center mb-6">
           <p class="text-label-sm text-muted mb-2">Total value across active &amp; upcoming</p>
-          <p class="text-display-2 text-accent-gold drop-shadow-lg break-all">${stats().total.toLocaleString()}+</p>
+          <p class="text-display-2 text-accent-gold drop-shadow-glow break-all">${stats().total.toLocaleString()}+</p>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
@@ -862,67 +862,71 @@ function NextTournamentBanner(props: { upcoming: Tournament[] }) {
 
   return (
     <Show when={next() && diff() > 0}>
-      <div class={`relative overflow-hidden border-b border-[#1f1f1f] ${
+      <div class={`relative overflow-hidden border-b border-green-500/20 shadow-lg shadow-green-900/20 ${
         isImminent()
-          ? "bg-gradient-to-r from-green-600/30 via-emerald-500/20 to-teal-400/30"
-          : "bg-gradient-to-r from-green-600/15 via-emerald-500/10 to-teal-400/15"
+          ? "bg-gradient-to-r from-green-600/40 via-emerald-500/30 to-teal-400/40"
+          : "bg-gradient-to-r from-green-600/25 via-emerald-500/15 to-teal-400/25"
       }`}>
-        <div class="absolute inset-0 opacity-[0.05]" style="background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 20px);" />
-        <div class="relative max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
-          <div class="flex items-center gap-3">
-            <span class="relative flex h-2.5 w-2.5">
+        <div class="absolute inset-0 opacity-[0.08]" style="background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 20px);" />
+        <div class="relative max-w-7xl mx-auto px-4 py-4 sm:py-5 flex items-center justify-between gap-4 flex-wrap">
+          <div class="flex items-center gap-4">
+            <span class="relative flex h-3 w-3 flex-shrink-0">
               <span class="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75" />
-              <span class="relative rounded-full h-2.5 w-2.5 bg-green-500" />
+              <span class="relative rounded-full h-3 w-3 bg-green-500" />
             </span>
             <div>
-              <p class="text-[10px] text-green-400 font-black uppercase tracking-[0.15em]">
+              <p class="text-label text-accent-success">
                 {next()!.status === "registration"
                   ? next()!.spots_available > 0 ? "Registration Open" : "SOLD OUT"
                   : "Coming Up"}
               </p>
-              <p class="text-sm text-white font-bold">
-                {next()!.name} — ${Number(next()!.account_size).toLocaleString()} account
+              <p class="text-h2 text-primary mt-0.5">
+                {next()!.name}
+                <span class="text-secondary font-semibold"> — ${Number(next()!.account_size).toLocaleString()} account</span>
                 {next()!.status === "registration" && next()!.spots_available > 0 && (
-                  <span class="ml-2 text-xs text-yellow-300 font-bold">{next()!.spots_available} spots left</span>
+                  <span class="ml-2 text-sm sm:text-base text-accent-warn font-black">{next()!.spots_available} spots left</span>
                 )}
               </p>
             </div>
           </div>
           <Show when={remaining()}>
-            <div class="flex items-center gap-2 text-xs">
-              <span class="text-gray-400">Starts in</span>
-              <div class="flex gap-1 font-mono font-bold">
+            <div class="flex items-center gap-3 flex-wrap">
+              <span class="text-body-sm text-secondary font-semibold">Starts in</span>
+              <div class="flex gap-1.5 font-mono font-black">
                 <Show when={remaining()!.d > 0}>
-                  <span class="bg-black/40 border border-green-500/30 text-green-300 px-2 py-1 rounded">
+                  <span class="bg-black/50 border border-green-500/40 text-green-300 text-base sm:text-lg px-3 py-1.5 rounded min-w-[2.75rem] text-center">
                     {remaining()!.d}d
                   </span>
                 </Show>
-                <span class="bg-black/40 border border-green-500/30 text-green-300 px-2 py-1 rounded">
+                <span class="bg-black/50 border border-green-500/40 text-green-300 text-base sm:text-lg px-3 py-1.5 rounded min-w-[2.75rem] text-center">
                   {String(remaining()!.h).padStart(2, "0")}h
                 </span>
-                <span class="bg-black/40 border border-green-500/30 text-green-300 px-2 py-1 rounded">
+                <span class="bg-black/50 border border-green-500/40 text-green-300 text-base sm:text-lg px-3 py-1.5 rounded min-w-[2.75rem] text-center">
                   {String(remaining()!.m).padStart(2, "0")}m
                 </span>
-                <span class="bg-black/40 border border-green-500/30 text-green-300 px-2 py-1 rounded">
+                <span class="bg-black/50 border border-green-500/40 text-green-300 text-base sm:text-lg px-3 py-1.5 rounded min-w-[2.75rem] text-center">
                   {String(remaining()!.s).padStart(2, "0")}s
                 </span>
               </div>
               <Show when={next()!.status === "registration" && next()!.spots_available > 0}
                 fallback={
                   <A href={`/tournaments/${next()!.slug}`}
-                    class="ml-2 px-3 py-1 bg-gray-700 text-gray-300 font-bold text-[11px] rounded transition hover:bg-gray-600">
+                    class="ml-2 px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-gray-200 font-bold text-sm rounded-lg transition">
                     {next()!.spots_available <= 0 ? "SOLD OUT" : "View Details"}
                   </A>
                 }>
                 <Show when={!userEntries.isRegistered(next()!.id)} fallback={
                   <A href={`/tournaments/${next()!.slug}`}
-                    class="ml-2 px-3 py-1 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40 text-emerald-300 font-bold text-[11px] rounded">
+                    class="ml-2 px-5 py-2.5 bg-gradient-to-br from-emerald-500/30 to-emerald-600/20 border border-emerald-500/50 text-emerald-200 font-black text-sm rounded-lg">
                     ✓ You're in
                   </A>
                 }>
                   <A href={`/checkout/${next()!.slug}`}
-                    class="ml-2 px-3 py-1 bg-green-600 hover:bg-green-500 text-white font-bold text-[11px] rounded transition">
+                    class="ml-2 inline-flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-400 text-black font-black text-base rounded-lg transition shadow-lg shadow-green-500/30 hover:scale-[1.03]">
                     Get Your Spot
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                      <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                    </svg>
                   </A>
                 </Show>
               </Show>

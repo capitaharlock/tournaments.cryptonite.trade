@@ -22,10 +22,16 @@
 @layer components {
   /* ── Display / Hero ─────────────────────────────────────────────── */
   .text-display-1 {
-    @apply text-4xl sm:text-5xl md:text-6xl font-black leading-none tracking-tight;
+    @apply text-5xl sm:text-6xl md:text-7xl font-black leading-none tracking-tight;
   }
   .text-display-2 {
-    @apply text-3xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight;
+    @apply text-4xl sm:text-5xl md:text-6xl font-black leading-none tracking-tight;
+  }
+  /* Subtle luminous glow for hero numbers on dark backgrounds. Apply on
+     top of .text-display-* plus a color class (.text-accent-gold, etc). */
+  .drop-shadow-glow {
+    filter: drop-shadow(0 0 12px rgb(0 0 0 / 0.45))
+            drop-shadow(0 2px 4px rgb(0 0 0 / 0.25));
   }
 
   /* ── Headings ───────────────────────────────────────────────────── */
