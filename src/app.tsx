@@ -3,6 +3,7 @@ import { FileRoutes } from "@solidjs/start/router";
 import { MetaProvider } from "@solidjs/meta";
 import { Suspense } from "solid-js";
 import { UserEntriesProvider } from "./contexts/UserEntries";
+import { TournamentStreamProvider } from "./contexts/TournamentStream";
 import "./app.css";
 
 export default function App() {
@@ -11,7 +12,9 @@ export default function App() {
       <Router
         root={(props) => (
           <UserEntriesProvider>
-            <Suspense>{props.children}</Suspense>
+            <TournamentStreamProvider>
+              <Suspense>{props.children}</Suspense>
+            </TournamentStreamProvider>
           </UserEntriesProvider>
         )}
       >

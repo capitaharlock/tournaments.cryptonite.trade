@@ -23,6 +23,11 @@ export interface Tournament {
   registration_opens_at: string;
   starts_at: string;
   ends_at: string;
+  /** Real registration cutoff — `starts_at + grace_hours(duration)`.
+   * During the grace window the tournament is visibly `active` but
+   * /v1/tournaments/:id/enter still accepts signups. Optional so older
+   * API deploys don't break the type. */
+  registration_closes_at?: string;
   total_spots: number;
   reserved_spots: number;
   spots_available: number;

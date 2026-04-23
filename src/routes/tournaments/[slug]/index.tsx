@@ -11,6 +11,7 @@ import RankingTable from "../../../components/tournament/RankingTable";
 import RegisteredCTA from "../../../components/tournament/RegisteredCTA";
 import { getStatusStyle } from "../../../lib/statusStyles";
 import { useUserEntries } from "../../../contexts/UserEntries";
+import { useTournamentStream } from "../../../contexts/TournamentStream";
 
 const WORKER_WS_URL = import.meta.env.VITE_WORKER_WS_URL || "wss://cryptonite-tournament-worker.fly.dev";
 
@@ -22,6 +23,21 @@ export default function TournamentDetail() {
     const t = tournament();
     return t ? userEntries.isRegistered(t.id) : false;
   };
+
+  // ─── Live structural updates via the global WS ─────────────────────
+  // Refetch the tournament object whenever the worker broadcasts a
+  // status transition for THIS tournament id. Keeps the hero, CTA card,
+  // and status badge in sync without a reload.
+  const stream = useTournamentStream();
+  onMount(() => {
+    const onState = (ev: any) => {
+      const id = tournament()?.id;
+      if (id && ev.tournament_id === id) refetchTournament();
+    };
+    const un1 = stream.subscribe("tournament_state_changed", onState);
+    const un2 = stream.subscribe("registration_grace_closed", onState);
+    onCleanup(() => { un1(); un2(); });
+  });
 
   // ─── Live rankings via store + reconcile (no flash, stable identity) ────
   // Critical: use createStore + reconcile keyed by entry_id so row objects

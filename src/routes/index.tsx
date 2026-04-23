@@ -11,14 +11,48 @@ import TournamentHero from "../components/tournament/TournamentHero";
 import RegisteredCTA from "../components/tournament/RegisteredCTA";
 import { getStatusStyle } from "../lib/statusStyles";
 import { useUserEntries } from "../contexts/UserEntries";
+import { useTournamentStream } from "../contexts/TournamentStream";
 
 export default function Home() {
-  const [active] = createResource(() => fetchTournaments("active"));
-  const [registering] = createResource(() => fetchTournaments("registration"));
-  const [scheduled] = createResource(() => fetchTournaments("scheduled"));
-  const [finished] = createResource(() => fetchTournaments("finished"));
+  const [active, activeCtl] = createResource(() => fetchTournaments("active"));
+  const [registering, registeringCtl] = createResource(() => fetchTournaments("registration"));
+  const [scheduled, scheduledCtl] = createResource(() => fetchTournaments("scheduled"));
+  const [finished, finishedCtl] = createResource(() => fetchTournaments("finished"));
   const [hallOfFame] = createResource(fetchHallOfFame);
-  const [recentWinners] = createResource(fetchRecentWinners);
+  const [recentWinners, recentWinnersCtl] = createResource(fetchRecentWinners);
+
+  // ─── Live structural updates via the global WebSocket ──────────────
+  // The worker fires `tournament_state_changed` whenever a tournament
+  // transitions scheduled/registration/active/closing/distributing/
+  // finished. We re-fetch the affected lists so the UI reflects the new
+  // state without a reload. Debounced at 250ms so a burst of N changes
+  // in one engine tick causes just one round-trip per list.
+  const stream = useTournamentStream();
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  const refetchAll = () => {
+    if (debounceTimer) return;
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null;
+      activeCtl.refetch();
+      registeringCtl.refetch();
+      scheduledCtl.refetch();
+      finishedCtl.refetch();
+      recentWinnersCtl.refetch();
+    }, 250);
+  };
+  onMount(() => {
+    const unsubState = stream.subscribe("tournament_state_changed", refetchAll);
+    const unsubAppeared = stream.subscribe("tournament_appeared", refetchAll);
+    const unsubGrace = stream.subscribe("registration_grace_closed", refetchAll);
+    const unsubReg = stream.subscribe("registration", refetchAll);
+    onCleanup(() => {
+      unsubState();
+      unsubAppeared();
+      unsubGrace();
+      unsubReg();
+      if (debounceTimer) clearTimeout(debounceTimer);
+    });
+  });
 
   // ═══════════════════════════════════════════════════════════════════════
   // STATE MACHINE for home slot selection
