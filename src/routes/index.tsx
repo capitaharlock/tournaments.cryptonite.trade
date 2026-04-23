@@ -1,5 +1,5 @@
 import { createResource, createSignal, onCleanup, onMount, For, Show, createMemo } from "solid-js";
-import { A } from "@solidjs/router";
+import { A, useNavigate } from "@solidjs/router";
 import { Title } from "@solidjs/meta";
 import { fetchTournaments, fetchRankings, fetchHallOfFame, fetchRecentWinners } from "../services/api";
 import type { Tournament } from "../types/tournament";
@@ -342,10 +342,24 @@ function AgendaRow(props: { tournament: Tournament; isLive?: boolean; isRegister
   const style = () => getStatusStyle(t().status);
   const userEntries = useUserEntries();
   const isUserIn = () => userEntries.isRegistered(t().id);
+  const navigate = useNavigate();
+
+  // Row navigates to the tournament detail. The Join CTA inside navigates
+  // to checkout instead — handled via stopPropagation on the button so the
+  // outer row click doesn't fire. Using a div + navigate() rather than a
+  // nested <A> avoids the invalid-HTML nested-anchor problem that
+  // previously swallowed the button click.
+  const goToTournament = (e: MouseEvent) => {
+    if ((e.target as HTMLElement).closest("[data-row-cta]")) return;
+    navigate(`/tournaments/${t().slug}`);
+  };
 
   return (
-    <A
-      href={`/tournaments/${t().slug}`}
+    <div
+      role="link"
+      tabindex="0"
+      onClick={goToTournament}
+      onKeyDown={(e) => { if (e.key === "Enter") navigate(`/tournaments/${t().slug}`); }}
       class="block px-4 py-3 border-b border-[#1a1a1a] hover:bg-white/[0.03] transition cursor-pointer"
     >
       {/* Row 1: Icon + Name + Status badge */}
@@ -387,22 +401,25 @@ function AgendaRow(props: { tournament: Tournament; isLive?: boolean; isRegister
       </div>
 
       {/* Row 3: CTA button (only for registration with spots)
-          Aligned to the right, matching the countdown's right edge */}
+          data-row-cta marks the button subtree so the row's click handler
+          ignores clicks that originate inside it — the button can then
+          navigate to /checkout on its own without being pre-empted. */}
       <Show when={canJoin()}>
-        <div class="flex justify-end mt-2.5" onClick={(e: any) => e.preventDefault()}>
+        <div class="flex justify-end mt-2.5" data-row-cta>
           <Show when={!isUserIn()} fallback={
             <span class="inline-block px-5 py-1.5 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold rounded-md">
               ✓ You're in
             </span>
           }>
             <A href={`/checkout/${t().slug}`}
+              onClick={(e) => e.stopPropagation()}
               class="inline-block px-5 py-1.5 bg-green-600 hover:bg-green-500 text-white text-[11px] font-bold rounded-md transition focus:outline-none focus:ring-2 focus:ring-green-400/50">
               Join — ${t().entry_fee}
             </A>
           </Show>
         </div>
       </Show>
-    </A>
+    </div>
   );
 }
 
