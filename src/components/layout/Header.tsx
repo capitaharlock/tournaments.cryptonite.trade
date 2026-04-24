@@ -34,7 +34,7 @@ export default function Header() {
 
         {/* Desktop nav — unchanged */}
         <nav class="hidden md:flex items-center gap-1">
-          <NavButton href="/" active={isActive("/")} label="Live" showPulse />
+          <NavButton href="/" active={isActive("/")} label="Tournaments" showPulse />
           <NavButton href="/schedule" active={isActive("/schedule")} label="Schedule" />
           <NavButton href="/how-it-works" active={isActive("/how-it-works")} label="How It Works" />
         </nav>
@@ -75,7 +75,7 @@ export default function Header() {
       <Show when={menuOpen()}>
         <div class="md:hidden border-t border-gray-800 bg-black">
           <nav class="flex flex-col px-4 py-3 gap-1">
-            <MobileNavLink href="/" active={isActive("/")} label="Live" showPulse />
+            <MobileNavLink href="/" active={isActive("/")} label="Tournaments" showPulse />
             <MobileNavLink href="/schedule" active={isActive("/schedule")} label="Schedule" />
             <MobileNavLink href="/how-it-works" active={isActive("/how-it-works")} label="How It Works" />
           </nav>

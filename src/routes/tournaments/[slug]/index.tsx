@@ -1,4 +1,4 @@
-import { createResource, createSignal, Show, onCleanup, createMemo, createEffect } from "solid-js";
+import { createResource, createSignal, Show, onMount, onCleanup, createMemo, createEffect } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import { useParams, A } from "@solidjs/router";
 import { Title } from "@solidjs/meta";
