@@ -1,5 +1,5 @@
 import { createResource, createSignal, onCleanup, onMount, For, Show, createMemo } from "solid-js";
-import { A, useNavigate } from "@solidjs/router";
+import { A, useNavigate, useSearchParams } from "@solidjs/router";
 import { Title } from "@solidjs/meta";
 import { fetchTournaments, fetchRankings, fetchHallOfFame, fetchRecentWinners } from "../services/api";
 import type { Tournament } from "../types/tournament";
@@ -10,10 +10,45 @@ import TournamentProgress from "../components/tournament/TournamentProgress";
 import TournamentHero from "../components/tournament/TournamentHero";
 import RegisteredCTA from "../components/tournament/RegisteredCTA";
 import { getStatusStyle } from "../lib/statusStyles";
+import { setSSOToken } from "../lib/sso";
 import { useUserEntries } from "../contexts/UserEntries";
 import { useTournamentStream } from "../contexts/TournamentStream";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:7002";
+
 export default function Home() {
+  const [searchParams] = useSearchParams();
+  onMount(async () => {
+    const code = (searchParams.code as string | undefined)?.trim().toUpperCase();
+    if (code) sessionStorage.setItem("cryptonite_promo_code", code);
+
+    const urlToken = searchParams.token as string | undefined;
+    if (!urlToken) return;
+
+    // Validate token from email link and set SSO cookie
+    try {
+      const res = await fetch(`${API_URL}/v1/auth/validate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: urlToken }),
+      });
+      const data = await res.json();
+      if (data.valid) setSSOToken(urlToken);
+    } catch { /* silent — continue without auth */ }
+
+    // Navigate to ?redirect= destination, or reload clean URL without token
+    const redirect = searchParams.redirect as string | undefined;
+    if (redirect) {
+      const dest = new URL(redirect, window.location.origin);
+      if (code) dest.searchParams.set("code", code);
+      window.location.replace(dest.toString());
+    } else {
+      const clean = new URL(window.location.href);
+      clean.searchParams.delete("token");
+      window.location.replace(clean.toString());
+    }
+  });
+
   const [active, activeCtl] = createResource(() => fetchTournaments("active"));
   const [registering, registeringCtl] = createResource(() => fetchTournaments("registration"));
   const [scheduled, scheduledCtl] = createResource(() => fetchTournaments("scheduled"));
@@ -932,7 +967,7 @@ function NextTournamentBanner(props: { upcoming: Tournament[] }) {
                   : "Coming Up"}
               </p>
               <p class="text-h2 text-primary mt-0.5">
-                {next()!.name}
+                <A href={`/tournaments/${next()!.slug}`} class="hover:underline">{next()!.name}</A>
                 <span class="text-secondary font-semibold"> — ${Number(next()!.account_size).toLocaleString()} account</span>
                 {next()!.status === "registration" && next()!.spots_available > 0 && (
                   <span class="ml-2 text-sm sm:text-base text-accent-warn font-black">{next()!.spots_available} spots left</span>

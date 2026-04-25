@@ -76,7 +76,7 @@ export default function Schedule() {
                       This Week <span class="text-gray-500 text-sm font-normal">— starting in the next 7 days</span>
                     </h2>
                   </div>
-                  <div class="space-y-4">
+                  <div class="space-y-6">
                     <For each={within7Days()}>
                       {(t) => <ScheduleCard tournament={t} />}
                     </For>

@@ -15,7 +15,15 @@ export default function TournamentHero(props: Props) {
   const isReg = () => t().status === "registration";
   const isScheduled = () => t().status === "scheduled";
   const isFinished = () => t().status === "finished";
-  const totalDays = () => Math.round((new Date(t().ends_at).getTime() - new Date(t().starts_at).getTime()) / 86400000);
+  const totalDays = () => {
+    const d = t().duration_days;
+    if (d && d > 0) return d;
+    const slug = t().slug;
+    if (slug.includes("-3d-")) return 3;
+    if (slug.includes("-7d-")) return 7;
+    if (slug.includes("-30d-")) return 30;
+    return Math.round((new Date(t().ends_at).getTime() - new Date(t().starts_at).getTime()) / 86400000);
+  };
   const cashPrize = () => {
     const p = (t().prizes as any[]).find(p => p.type === "cash");
     return p ? p.value : null;
@@ -86,27 +94,59 @@ export default function TournamentHero(props: Props) {
               <div>
                 <h2 class="text-base font-bold text-white leading-tight">{t().name}</h2>
                 <p class="text-[11px] text-gray-500">
-                  ${Number(t().account_size).toLocaleString()} • {t().total_spots} players • ${t().entry_fee}
+                  ${Number(t().account_size).toLocaleString()} • {t().total_spots} players •{" "}
+                  <Show when={isFinished()} fallback={<>${t().entry_fee}</>}>
+                    {totalDays()} days
+                  </Show>
                 </p>
               </div>
             </div>
 
-            {/* Clock top right / Ended date */}
+            {/* Right panel — status-dependent */}
             <Show when={isLive()}>
               <FlipClock targetDate={t().ends_at} size="sm" />
             </Show>
-            <Show when={isReg()}>
-              <FlipClock targetDate={t().starts_at} label="STARTS" size="sm" />
-            </Show>
-            <Show when={isScheduled()}>
-              <FlipClock targetDate={t().registration_opens_at} label="OPENS" size="sm" />
-            </Show>
-            <Show when={isFinished()}>
-              <div class="text-right">
-                <p class="text-[9px] text-gray-600 uppercase tracking-wider mb-0.5">Ended</p>
-                <p class="text-sm font-bold text-gray-400">
-                  {new Date(t().ends_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+
+            <Show when={isReg() || isScheduled()}>
+              <div class="text-right flex-shrink-0">
+                <p class="text-[9px] text-gray-600 uppercase tracking-wider mb-1">
+                  {isReg() ? "Starts" : "Registration opens"}
                 </p>
+                <p class="text-2xl font-black text-white leading-none">
+                  {new Date(isReg() ? t().starts_at : t().registration_opens_at).getDate()}
+                </p>
+                <p class="text-[11px] text-gray-400 uppercase mt-0.5">
+                  {new Date(isReg() ? t().starts_at : t().registration_opens_at)
+                    .toLocaleDateString("en-US", { month: "short" })}
+                </p>
+                <p class="text-[10px] text-gray-600 mt-0.5">
+                  {new Date(isReg() ? t().starts_at : t().registration_opens_at)
+                    .toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "UTC", timeZoneName: "short" })}
+                </p>
+              </div>
+            </Show>
+
+            <Show when={isFinished()}>
+              <div class="flex items-center gap-3 flex-shrink-0">
+                <div class="text-center">
+                  <p class="text-[9px] text-gray-600 uppercase tracking-wider mb-1">From</p>
+                  <p class="text-2xl font-black text-gray-400 leading-none">
+                    {new Date(t().starts_at).getDate()}
+                  </p>
+                  <p class="text-[11px] text-gray-500 uppercase mt-0.5">
+                    {new Date(t().starts_at).toLocaleDateString("en-US", { month: "short" })}
+                  </p>
+                </div>
+                <span class="text-gray-700 text-base mb-1">→</span>
+                <div class="text-center">
+                  <p class="text-[9px] text-gray-600 uppercase tracking-wider mb-1">To</p>
+                  <p class="text-2xl font-black text-gray-300 leading-none">
+                    {new Date(t().ends_at).getDate()}
+                  </p>
+                  <p class="text-[11px] text-gray-500 uppercase mt-0.5">
+                    {new Date(t().ends_at).toLocaleDateString("en-US", { month: "short" })}
+                  </p>
+                </div>
               </div>
             </Show>
           </div>

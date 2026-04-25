@@ -46,14 +46,14 @@ export default function FlipClock(props: Props) {
     }
   };
 
-  const labelCls = () => sz() === "lg" ? "text-[10px] mt-1" : sz() === "sm" ? "text-[8px] mt-0.5" : "text-[9px] mt-0.5";
-  const colonCls = () => sz() === "lg" ? "text-gray-600 text-xl mx-0.5 mb-3" : sz() === "sm" ? "text-gray-600 text-[10px] mx-0" : "text-gray-600 text-sm mx-0";
+  const labelCls = () => sz() === "lg" ? "text-xs mt-1.5" : sz() === "sm" ? "text-[10px] mt-1" : "text-[11px] mt-1";
+  const colonCls = () => sz() === "lg" ? "text-gray-400 text-xl mx-0.5 mb-3" : sz() === "sm" ? "text-gray-400 text-[10px] mx-0" : "text-gray-400 text-sm mx-0";
   const gapCls = () => sz() === "lg" ? "gap-1.5" : "gap-1";
 
   return (
     <div class="text-center">
       <Show when={props.label}>
-        <p class={`text-gray-500 mb-1.5 ${sz() === "lg" ? "text-[10px]" : "text-[9px]"} uppercase tracking-wider`}>
+        <p class={`text-gray-300 mb-1.5 ${sz() === "lg" ? "text-xs" : "text-[11px]"} uppercase tracking-widest font-semibold`}>
           {props.label}
         </p>
       </Show>
@@ -81,7 +81,7 @@ function Digit(props: { value: () => number; label: string; box: string; labelCl
           {String(props.value()).padStart(2, "0")}
         </span>
       </div>
-      <span class={`${props.labelCls} text-gray-600 font-medium`}>{props.label}</span>
+      <span class={`${props.labelCls} text-gray-400 font-semibold tracking-wider uppercase`}>{props.label}</span>
     </div>
   );
 }

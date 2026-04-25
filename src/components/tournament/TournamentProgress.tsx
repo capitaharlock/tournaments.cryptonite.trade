@@ -1,4 +1,4 @@
-import { createSignal, onCleanup, For } from "solid-js";
+import { createSignal, onCleanup, For, Show } from "solid-js";
 
 interface Props {
   startsAt: string;
@@ -31,39 +31,33 @@ export default function TournamentProgress(props: Props) {
   const interval = setInterval(() => setState(calc()), 5000);
   onCleanup(() => clearInterval(interval));
 
-  const days = () => Array.from({ length: props.totalDays }, (_, i) => i);
+  // totalDays + 1 dots: index 0 = start, index N = end of day N
+  const dots = () => Array.from({ length: props.totalDays + 1 }, (_, i) => i);
 
   return (
     <div class="space-y-1.5">
-      {/* Day dots */}
-      <div class="flex items-center gap-1">
-        <For each={days()}>
-          {(dayIndex) => {
-            const isPast = () => state().daysPassed > dayIndex;
-            const isCurrent = () => state().daysPassed === dayIndex && state().started;
+      {/* Day dots — full width, no label */}
+      <div class="flex items-center w-full">
+        <For each={dots()}>
+          {(dotIndex) => {
+            const isPast = () => state().daysPassed > dotIndex;
+            const isCurrent = () => state().daysPassed === dotIndex && state().started;
             return (
-              <div class="flex items-center gap-1 flex-1">
-                <div
-                  class={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${
-                    isPast()
-                      ? "bg-green-500"
-                      : isCurrent()
-                      ? "bg-green-400 ring-2 ring-green-400/30"
-                      : "bg-gray-700"
-                  }`}
-                />
-                {dayIndex < props.totalDays - 1 && (
-                  <div class={`flex-1 h-0.5 rounded ${
-                    isPast() ? "bg-green-500/60" : "bg-gray-800"
-                  }`} />
-                )}
+              <div class={`flex items-center ${dotIndex < props.totalDays ? "flex-1" : "flex-none"}`}>
+                <div class={`w-2 h-2 rounded-full flex-shrink-0 transition-all duration-500 ${
+                  isPast()
+                    ? "bg-green-500"
+                    : isCurrent()
+                    ? "bg-green-400 ring-2 ring-green-400/30"
+                    : "bg-gray-700"
+                }`} />
+                <Show when={dotIndex < props.totalDays}>
+                  <div class={`flex-1 h-0.5 rounded mx-0.5 ${isPast() ? "bg-green-500/60" : "bg-gray-800"}`} />
+                </Show>
               </div>
             );
           }}
         </For>
-        <span class="text-[9px] text-gray-600 ml-1">
-          D{Math.min(state().daysPassed + 1, props.totalDays)}/{props.totalDays}
-        </span>
       </div>
 
       {/* Progress bar — shows last-24h gradient when live, or full teal bar when completed */}

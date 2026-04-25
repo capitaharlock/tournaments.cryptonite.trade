@@ -1,4 +1,4 @@
-import { createResource, createSignal, Show, For, onMount } from "solid-js";
+import { createResource, createSignal, Show, For, onMount, createEffect } from "solid-js";
 import { useParams, useSearchParams, A } from "@solidjs/router";
 import { Title } from "@solidjs/meta";
 import { fetchTournament } from "../../services/api";
@@ -48,8 +48,35 @@ export default function Checkout() {
   const [entryResult, setEntryResult] = createSignal<any>(null);
   const [voucherCode, setVoucherCode] = createSignal("");
   const [voucherApplied, setVoucherApplied] = createSignal(false);
+  const [voucherLoading, setVoucherLoading] = createSignal(false);
+  const [voucherError, setVoucherError] = createSignal<string | null>(null);
+  const [voucherDiscount, setVoucherDiscount] = createSignal<{ discount_percentage: number; original_amount: number; discount_amount: number; final_amount: number } | null>(null);
 
   const style = () => getStatusStyle(tournament()?.status);
+  const [autoApplyDone, setAutoApplyDone] = createSignal(false);
+
+  // ─── Promo code from URL or session ───────────────────────────────────
+  onMount(() => {
+    const urlCode = (searchParams.code as string | undefined)?.trim().toUpperCase();
+    if (urlCode) {
+      setVoucherCode(urlCode);
+      sessionStorage.setItem("cryptonite_promo_code", urlCode);
+    } else {
+      const saved = sessionStorage.getItem("cryptonite_promo_code");
+      if (saved) setVoucherCode(saved);
+    }
+  });
+
+  // Auto-apply when tournament + auth + code are all ready (once only)
+  createEffect(() => {
+    const t = tournament();
+    const token = jwt();
+    const code = voucherCode();
+    if (t && token && code && !autoApplyDone() && !voucherApplied()) {
+      setAutoApplyDone(true);
+      handleApplyVoucher(t.id);
+    }
+  });
 
   // ─── Auto-auth: SSO cookie (primary) or URL token (legacy fallback) ───
   const tryAutoAuth = async (token: string): Promise<boolean> => {
@@ -179,6 +206,29 @@ export default function Checkout() {
       setError("Could not send reset email. Try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApplyVoucher = async (tournamentId: string) => {
+    const code = voucherCode().trim();
+    if (!code) return;
+    setVoucherLoading(true);
+    setVoucherError(null);
+    try {
+      const res = await fetch(
+        `${API_URL}/v1/tournaments/${tournamentId}/validate-promo?code=${encodeURIComponent(code)}`
+      );
+      const data = await res.json();
+      if (!data.success || !data.data.valid) {
+        setVoucherError(data.data?.reason || "Invalid code");
+        return;
+      }
+      setVoucherDiscount(data.data);
+      setVoucherApplied(true);
+    } catch {
+      setVoucherError("Could not validate code. Try again.");
+    } finally {
+      setVoucherLoading(false);
     }
   };
 
@@ -485,28 +535,53 @@ export default function Checkout() {
                         <h2 class="text-xl font-bold text-white mb-1">Choose payment method</h2>
                         <p class="text-sm text-gray-500 mb-4">Entry fee: <span class="text-white font-bold">${t().entry_fee}</span></p>
 
-                        {/* Voucher */}
+                        {/* Voucher / Promo code */}
                         <div class="mb-5 max-w-lg">
                           <Show when={!voucherApplied()}>
                             <div class="flex gap-2">
-                              <input type="text" placeholder="Voucher code" value={voucherCode()}
-                                onInput={(e) => setVoucherCode(e.currentTarget.value)}
-                                class="flex-1 px-3 py-2 bg-[#0a0a0a] border border-gray-800 rounded-lg text-white text-sm focus:border-green-500 focus:outline-none font-mono" />
+                              <input
+                                type="text"
+                                placeholder="Promo or voucher code"
+                                value={voucherCode()}
+                                onInput={(e) => { setVoucherCode(e.currentTarget.value.toUpperCase()); setVoucherError(null); }}
+                                onKeyDown={(e) => e.key === "Enter" && voucherCode().length > 0 && handleApplyVoucher(tournament()!.id)}
+                                class="flex-1 px-3 py-2 bg-[#0a0a0a] border border-gray-800 rounded-lg text-white text-sm focus:border-green-500 focus:outline-none font-mono uppercase"
+                              />
                               <Show when={voucherCode().length > 0}>
-                                <button onClick={() => setVoucherApplied(true)}
-                                  class="px-4 py-2 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition text-sm">
-                                  Apply
+                                <button
+                                  onClick={() => handleApplyVoucher(tournament()!.id)}
+                                  disabled={voucherLoading()}
+                                  class="px-4 py-2 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition text-sm disabled:opacity-50"
+                                >
+                                  {voucherLoading() ? "..." : "Apply"}
                                 </button>
                               </Show>
                             </div>
+                            <Show when={voucherError()}>
+                              <p class="text-red-400 text-xs mt-1.5">{voucherError()}</p>
+                            </Show>
                           </Show>
-                          <Show when={voucherApplied()}>
-                            <div class="flex items-center gap-2 bg-green-900/20 border border-green-700/30 rounded-lg px-4 py-2.5">
-                              <span class="text-green-400 text-sm font-bold">Voucher applied:</span>
-                              <span class="text-white font-mono text-sm">{voucherCode()}</span>
-                              <button onClick={() => { setVoucherApplied(false); setVoucherCode(""); }}
-                                class="ml-auto text-xs text-gray-500 hover:text-red-400">Remove</button>
-                            </div>
+                          <Show when={voucherApplied() && voucherDiscount()}>
+                            {(d) => (
+                              <div class="bg-green-900/20 border border-green-700/30 rounded-lg px-4 py-3">
+                                <div class="flex items-center gap-2 mb-1.5">
+                                  <span class="text-green-400 text-sm font-bold">
+                                    {d().discount_percentage}% off applied
+                                  </span>
+                                  <span class="text-white font-mono text-xs bg-green-900/40 px-2 py-0.5 rounded">{voucherCode()}</span>
+                                  <button
+                                    onClick={() => { setVoucherApplied(false); setVoucherCode(""); setVoucherDiscount(null); setVoucherError(null); }}
+                                    class="ml-auto text-xs text-gray-500 hover:text-red-400"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                                <div class="flex items-center gap-3 text-sm">
+                                  <span class="text-gray-500 line-through">${d().original_amount.toFixed(2)}</span>
+                                  <span class="text-green-400 font-black text-base">${d().final_amount.toFixed(2)}</span>
+                                </div>
+                              </div>
+                            )}
                           </Show>
                         </div>
 
@@ -567,7 +642,7 @@ export default function Checkout() {
                           </Show>
                           <button onClick={handleStartPayment} disabled={loading()}
                             class="px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition disabled:opacity-50 text-sm">
-                            {loading() ? "Processing..." : `Pay $${t().entry_fee}`}
+                            {loading() ? "Processing..." : `Pay $${voucherDiscount() ? voucherDiscount()!.final_amount.toFixed(2) : t().entry_fee}`}
                           </button>
                         </div>
                       </Show>
@@ -642,7 +717,7 @@ export default function Checkout() {
                                 setEntryResult({ entry_id: entryId, trading_account_id: accountId });
                                 setStep("success");
                               }}
-                              allowSimulation={true} /* [DEV/STAGING ONLY] remove when done testing */
+                              allowSimulation={false}
                             />
                           </Show>
                         </Show>
@@ -715,10 +790,29 @@ export default function Checkout() {
                         </div>
                       </div>
                       <div class="border-t border-[#1a1a1a] pt-3">
-                        <div class="flex justify-between items-baseline">
-                          <span class="text-sm text-gray-400">Total</span>
-                          <span class="text-2xl font-black text-green-400">${t().entry_fee}</span>
-                        </div>
+                        <Show when={voucherDiscount()} fallback={
+                          <div class="flex justify-between items-baseline">
+                            <span class="text-sm text-gray-400">Total</span>
+                            <span class="text-2xl font-black text-green-400">${t().entry_fee}</span>
+                          </div>
+                        }>
+                          {(d) => (
+                            <div>
+                              <div class="flex justify-between items-baseline mb-1">
+                                <span class="text-sm text-gray-400">Original</span>
+                                <span class="text-sm text-gray-500 line-through">${d().original_amount.toFixed(2)}</span>
+                              </div>
+                              <div class="flex justify-between items-baseline mb-1">
+                                <span class="text-sm text-green-500">{d().discount_percentage}% discount</span>
+                                <span class="text-sm text-green-500">-${d().discount_amount.toFixed(2)}</span>
+                              </div>
+                              <div class="flex justify-between items-baseline border-t border-[#1a1a1a] pt-2 mt-1">
+                                <span class="text-sm text-gray-400">Total</span>
+                                <span class="text-2xl font-black text-green-400">${d().final_amount.toFixed(2)}</span>
+                              </div>
+                            </div>
+                          )}
+                        </Show>
                       </div>
                     </div>
                   </div>
@@ -807,6 +901,14 @@ function DetailHero(props: { tournament: Tournament }) {
         <div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/60 to-transparent" />
 
         <div class="relative px-6 py-5">
+          {/* Breadcrumb back link */}
+          <A
+            href={`/tournaments/${t().slug}`}
+            class="inline-flex items-center gap-1.5 text-white/50 hover:text-white text-xs font-medium mb-3 transition"
+          >
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            {t().name}
+          </A>
           <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
             <div class="flex-1 min-w-0">
               <p class="text-sm text-white/60 font-medium mb-0.5">
@@ -818,7 +920,9 @@ function DetailHero(props: { tournament: Tournament }) {
                   {style().label}
                 </span>
               </p>
-              <h1 class="text-xl sm:text-3xl font-black text-white leading-tight drop-shadow-md mb-4">{t().name}</h1>
+              <A href={`/tournaments/${t().slug}`} class="hover:underline">
+                <h1 class="text-xl sm:text-3xl font-black text-white leading-tight drop-shadow-md mb-4">{t().name}</h1>
+              </A>
               <div class="flex items-center gap-2 flex-wrap">
                 {(t().prizes as any[]).map((p: any, i: number) => (
                   <div class={`flex items-center gap-2 rounded-lg px-3 py-2 border ${
