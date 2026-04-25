@@ -30,18 +30,7 @@ function TokenAuthHandler() {
       });
       const data = await res.json();
       if (data.valid) setSSOToken(urlToken);
-    } catch { /* silent — continue without auth */ }
-
-    const redirect = searchParams.redirect as string | undefined;
-    if (redirect) {
-      const dest = new URL(redirect, window.location.origin);
-      if (code) dest.searchParams.set("code", code);
-      window.location.replace(dest.toString());
-    } else {
-      const clean = new URL(window.location.href);
-      clean.searchParams.delete("token");
-      window.location.replace(clean.toString());
-    }
+    } catch { /* silent */ }
   });
 
   return null;

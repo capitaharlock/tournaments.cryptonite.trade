@@ -22,7 +22,7 @@ type PaymentMethod = "paypal" | "crypto";
 
 export default function Checkout() {
   const params = useParams<{ slug: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tournament] = createResource(() => params.slug, fetchTournament);
   const userEntries = useUserEntries();
   // True once we've confirmed (via the user-entries endpoint) that the
@@ -105,7 +105,12 @@ export default function Checkout() {
 
   onMount(async () => {
     const cookieToken = getSSOToken();
-    if (cookieToken) await tryAutoAuth(cookieToken);
+    if (cookieToken && await tryAutoAuth(cookieToken)) return;
+    const urlToken = searchParams.token as string | undefined;
+    if (urlToken) {
+      await tryAutoAuth(urlToken);
+      setSearchParams({ token: undefined });
+    }
   });
 
   const [showForgotPassword, setShowForgotPassword] = createSignal(false);
