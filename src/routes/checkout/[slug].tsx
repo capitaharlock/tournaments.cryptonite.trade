@@ -22,7 +22,7 @@ type PaymentMethod = "paypal" | "crypto";
 
 export default function Checkout() {
   const params = useParams<{ slug: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [tournament] = createResource(() => params.slug, fetchTournament);
   const userEntries = useUserEntries();
   // True once we've confirmed (via the user-entries endpoint) that the
@@ -104,16 +104,8 @@ export default function Checkout() {
   };
 
   onMount(async () => {
-    // 1. Try SSO cookie (set by broker or any *.cryptonite.trade login)
     const cookieToken = getSSOToken();
-    if (cookieToken && await tryAutoAuth(cookieToken)) return;
-
-    // 2. Fallback: URL ?token= param (legacy cross-site redirect)
-    const urlToken = searchParams.token as string | undefined;
-    if (urlToken) {
-      await tryAutoAuth(urlToken);
-      setSearchParams({ token: undefined });
-    }
+    if (cookieToken) await tryAutoAuth(cookieToken);
   });
 
   const [showForgotPassword, setShowForgotPassword] = createSignal(false);

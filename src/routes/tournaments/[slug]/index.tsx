@@ -1,6 +1,6 @@
 import { createResource, createSignal, Show, onMount, onCleanup, createMemo, createEffect } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
-import { useParams, useSearchParams, A } from "@solidjs/router";
+import { useParams, A } from "@solidjs/router";
 import { Title } from "@solidjs/meta";
 import { fetchTournament, fetchRankingsWithMeta } from "../../../services/api";
 import type { Tournament } from "../../../types/tournament";
@@ -10,37 +10,13 @@ import TournamentProgress from "../../../components/tournament/TournamentProgres
 import RankingTable from "../../../components/tournament/RankingTable";
 import RegisteredCTA from "../../../components/tournament/RegisteredCTA";
 import { getStatusStyle } from "../../../lib/statusStyles";
-import { setSSOToken } from "../../../lib/sso";
 import { useUserEntries } from "../../../contexts/UserEntries";
 import { useTournamentStream } from "../../../contexts/TournamentStream";
 
 const WORKER_WS_URL = import.meta.env.VITE_WORKER_WS_URL || "wss://cryptonite-tournament-worker.fly.dev";
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:7002";
 
 export default function TournamentDetail() {
   const params = useParams<{ slug: string }>();
-  const [searchParams] = useSearchParams();
-  onMount(async () => {
-    const code = (searchParams.code as string | undefined)?.trim().toUpperCase();
-    if (code) sessionStorage.setItem("cryptonite_promo_code", code);
-
-    const urlToken = searchParams.token as string | undefined;
-    if (!urlToken) return;
-
-    try {
-      const res = await fetch(`${API_URL}/v1/auth/validate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: urlToken }),
-      });
-      const data = await res.json();
-      if (data.valid) setSSOToken(urlToken);
-    } catch { /* silent */ }
-
-    const clean = new URL(window.location.href);
-    clean.searchParams.delete("token");
-    window.location.replace(clean.toString());
-  });
   const [tournament, { refetch: refetchTournament }] = createResource(() => params.slug, fetchTournament);
   const userEntries = useUserEntries();
   const isUserIn = () => {
