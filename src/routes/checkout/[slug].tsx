@@ -104,11 +104,25 @@ export default function Checkout() {
   };
 
   onMount(async () => {
+    // 1. SSO cookie — JWT from previous login or TokenAuthHandler
     const cookieToken = getSSOToken();
     if (cookieToken && await tryAutoAuth(cookieToken)) return;
+
+    // 2. Raw email token — exchange for JWT via verify-email, then auth inline
     const urlToken = searchParams.token as string | undefined;
     if (urlToken) {
-      await tryAutoAuth(urlToken);
+      try {
+        const res = await fetch(`${API_URL}/v1/auth/verify-email`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: urlToken }),
+        });
+        const data = await res.json();
+        if (data.success && data.jwt) {
+          setSSOToken(data.jwt);
+          await tryAutoAuth(data.jwt);
+        }
+      } catch { /* silent */ }
       setSearchParams({ token: undefined });
     }
   });

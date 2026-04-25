@@ -23,13 +23,13 @@ function TokenAuthHandler() {
     if (!urlToken) return;
 
     try {
-      const res = await fetch(`${API_URL}/v1/auth/validate`, {
+      const res = await fetch(`${API_URL}/v1/auth/verify-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: urlToken }),
       });
       const data = await res.json();
-      if (data.valid) setSSOToken(urlToken);
+      if (data.success && data.jwt) setSSOToken(data.jwt);
     } catch { /* silent */ }
   });
 
