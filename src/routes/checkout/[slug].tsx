@@ -17,7 +17,7 @@ import { getCurrencyCode } from "../../components/checkout/utils/payment-config"
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:7002";
 
-type Step = "auth" | "method" | "payment" | "success" | "error";
+type Step = "auth" | "loading" | "method" | "payment" | "success" | "error";
 type PaymentMethod = "paypal" | "crypto";
 
 export default function Checkout() {
@@ -104,12 +104,17 @@ export default function Checkout() {
   };
 
   onMount(async () => {
-    // 1. SSO cookie — JWT from previous login or TokenAuthHandler
     const cookieToken = getSSOToken();
+    const urlToken = searchParams.token as string | undefined;
+
+    // Switch to loading immediately (sync, before any await) so the login
+    // form never flashes when the user is already authenticated.
+    if (cookieToken || urlToken) setStep("loading");
+
+    // 1. SSO cookie — JWT from previous session or TokenAuthHandler
     if (cookieToken && await tryAutoAuth(cookieToken)) return;
 
     // 2. Raw email token — exchange for JWT via verify-email, then auth inline
-    const urlToken = searchParams.token as string | undefined;
     if (urlToken) {
       try {
         const res = await fetch(`${API_URL}/v1/auth/verify-email`, {
@@ -125,6 +130,9 @@ export default function Checkout() {
       } catch { /* silent */ }
       setSearchParams({ token: undefined });
     }
+
+    // If we're still on "loading" here, nothing worked — show login form
+    if (step() === "loading") setStep("auth");
   });
 
   const [showForgotPassword, setShowForgotPassword] = createSignal(false);
@@ -484,11 +492,21 @@ export default function Checkout() {
                 {/* LEFT — Checkout Steps */}
                 <div class="flex-1 order-2 lg:order-1">
                   <div class="bg-black border border-[#222] rounded-xl overflow-hidden shadow-xl shadow-black/50">
-                    <div class="px-5 py-4 border-b border-[#1a1a1a]">
-                      <StepIndicator current={step()} />
-                    </div>
+                    <Show when={step() !== "loading"}>
+                      <div class="px-5 py-4 border-b border-[#1a1a1a]">
+                        <StepIndicator current={step()} />
+                      </div>
+                    </Show>
 
                     <div class="p-4 sm:p-6">
+                      {/* LOADING — validating existing session */}
+                      <Show when={step() === "loading"}>
+                        <div class="flex flex-col items-center justify-center py-16 gap-4">
+                          <div class="w-8 h-8 rounded-full border-2 border-zinc-700 border-t-green-500 animate-spin" />
+                          <p class="text-sm text-zinc-500">Verifying session…</p>
+                        </div>
+                      </Show>
+
                       {/* AUTH — transparent login or register */}
                       <Show when={step() === "auth"}>
                         <h2 class="text-xl font-bold text-white mb-1">Enter your email to continue</h2>
@@ -742,7 +760,7 @@ export default function Checkout() {
                           </div>
                           <h2 class="text-2xl font-bold text-white mb-2">You're In!</h2>
                           <p class="text-gray-400 mb-6">Your tournament account is ready. Start trading when the tournament begins.</p>
-                          <a href={`https://broker.cryptonite.trade/?from_tournament=true&account_id=${entryResult()?.trading_account_id || ""}`}
+                          <a href={`https://broker.cryptonite.trade/?account_id=${entryResult()?.trading_account_id || ""}`}
                             class="inline-block px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition">
                             Open Trading Station
                           </a>
@@ -1030,6 +1048,7 @@ function StepIndicator(props: { current: Step }) {
     { id: "method", label: "Method" },
     { id: "payment", label: "Payment" },
     { id: "success", label: "Done" },
+    // "loading" and "error" are not listed — handled separately
   ];
   const currentIdx = () => steps.findIndex((s) => s.id === props.current);
 

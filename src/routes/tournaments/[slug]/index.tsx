@@ -420,7 +420,20 @@ export default function TournamentDetail() {
                         <div class="bg-black/40 rounded-lg p-2.5 mb-3">
                           <FlipClock targetDate={t().ends_at} label="ENDS IN" size="sm" />
                         </div>
-                        <p class="text-gray-400 text-[10px]">{t().reserved_spots} traders competing</p>
+                        <p class="text-gray-400 text-[10px] mb-3">{t().reserved_spots} traders competing</p>
+
+                        {/* Trade button — only for registered users */}
+                        <Show when={isUserIn()}>
+                          <a
+                            href={`https://broker.cryptonite.trade/?account_id=${userEntries.getEntry(t().id)?.trading_account_id ?? ""}`}
+                            class="flex items-center justify-center gap-2 w-full py-3 bg-green-600 hover:bg-green-500 text-white font-black rounded-lg transition text-sm shadow-lg"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                            </svg>
+                            START TRADING →
+                          </a>
+                        </Show>
                       </div>
                     </div>
                   </Show>

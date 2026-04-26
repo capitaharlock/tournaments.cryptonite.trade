@@ -25,6 +25,7 @@ interface UserEntry {
   id: string;
   tournament_id: string;
   tournament_slug?: string;
+  trading_account_id?: string;
   status: string;
 }
 
@@ -35,6 +36,8 @@ interface UserEntriesContextValue {
   registeredTournamentIds: () => Set<string>;
   /** True iff the user has an entry in that tournament (regardless of status). */
   isRegistered: (tournamentId: string) => boolean;
+  /** Full entry record for a tournament, or null if not registered. */
+  getEntry: (tournamentId: string) => UserEntry | null;
   /** Force a refetch — call after checkout completes. */
   refresh: () => void;
   /** True while the initial fetch is in flight. */
@@ -109,6 +112,8 @@ export function UserEntriesProvider(props: { children: JSX.Element }) {
     registeredTournamentIds,
     isRegistered: (tournamentId: string) =>
       registeredTournamentIds().has(tournamentId),
+    getEntry: (tournamentId: string) =>
+      (entries() ?? []).find((e) => e.tournament_id === tournamentId) ?? null,
     refresh: () => setReloadTick((n) => n + 1),
     loading: () => entries.loading,
   };
@@ -126,6 +131,7 @@ export function useUserEntries(): UserEntriesContextValue {
       userId: () => null,
       registeredTournamentIds: () => new Set(),
       isRegistered: () => false,
+      getEntry: () => null,
       refresh: () => {},
       loading: () => false,
     };
